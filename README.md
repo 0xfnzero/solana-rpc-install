@@ -233,7 +233,7 @@ WantedBy=multi-user.target
   cd /root
 
   # 下载重做节点脚本
-  sudo wget https://github.com/0xfnzero/solana-node-install/blob/main/redo_node.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/blob/main/redo_node.sh
 
   # 赋予脚本可执行权限
   sudo chmod +x redo_node.sh
