@@ -1,12 +1,12 @@
 # solana-node-install
 
-### 按下面的安装，本人tsw上服务器配置:
-#### CPU: AMD Epyc Genoa 9254
-#### RAM: 384 GB
-#### 可以流畅运行RPC和GRPC节点服务
+#### 按下面的安装，本人tsw上服务器配置:
+* CPU: AMD Epyc Genoa 9254
+* RAM: 384 GB
+* 可以流畅运行RPC和GRPC节点服务
 
-### 挂载磁盘
-#### 准备至少 3 个 NVMe 盘，一个系统盘，一个存账户数据，一个存账本数据。除系统盘外，每个硬盘推荐使用 2T 的存储空间。
+#### 挂载磁盘
+* 准备至少 3 个 NVMe 盘，一个系统盘，一个存账户数据，一个存账本数据。除系统盘外，每个硬盘推荐使用 2T 的存储空间。
 
 
 ### 1. 创建目录和挂载硬盘命令
@@ -66,10 +66,12 @@ solana-keygen new -o validator-keypair.json
 ```
 
 ### 6. 系统调优
+
 #### 修改/etc/sysctl.conf
-#### vim /etc/sysctl.conf
-#### 添加如下
 ```shell
+vim /etc/sysctl.conf
+# 添加下面的内容
+
 # TCP Buffer Sizes (10k min, 87.38k default, 12M max)
 net.ipv4.tcp_rmem=10240 87380 12582912
 net.ipv4.tcp_wmem=10240 87380 12582912
@@ -116,18 +118,19 @@ sysctl -p
 ```
 
 #### 修改/etc/systemd/system.conf
-#### vim /etc/systemd/system.conf
-#### 添加如下
-
 ```shell
+vim /etc/systemd/system.conf
+# 添加下面的内容
+
 DefaultLimitNOFILE=1000000
 systemctl daemon-reload
 ```
 
 #### 修改/etc/security/limits.conf
-#### vim /etc/security/limits.conf
-#### 添加如下
 ```shell
+vim /etc/security/limits.conf
+# 添加下面的内容
+
 # Increase process file descriptor count limit
 * - nofile 1000000
 ulimit -n 1000000 # 手动设置一下，不然需要重启机器
@@ -146,9 +149,10 @@ sudo ufw status
 ```
 
 ### 8. 创建启动脚本和服务
-#### vim /root/sol/bin/validator.sh
-#### 添加如下
 ```shell
+vim /root/sol/bin/validator.sh
+# 添加下面的内容
+
 #!/bin/bash
 
 RUST_LOG=warn agave-validator \
