@@ -144,13 +144,15 @@ ulimit -n 1000000 # 手动设置一下，不然需要重启机器
 
 ### 8. 开启防火墙
 ```shell
+sudo ufw enable
+
 sudo ufw allow 22
 sudo ufw allow 8000:8020/tcp
 sudo ufw allow 8000:8020/udp
 sudo ufw allow 8899 # http 端口
 sudo ufw allow 8900 # websocket 端口
+sudo ufw allow 10900 # GRPC 端口
 
-sudo ufw enable
 sudo ufw status
 ```
 
