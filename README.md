@@ -128,6 +128,9 @@ vim /etc/systemd/system.conf
 # 添加下面的内容
 
 DefaultLimitNOFILE=1000000
+
+
+# 重新加载配置
 systemctl daemon-reload
 ```
 
@@ -139,7 +142,8 @@ vim /etc/security/limits.conf
 # Increase process file descriptor count limit
 * - nofile 1000000
 
-ulimit -n 1000000 # 手动设置一下，不然需要重启机器
+# 手动设置一下，不然需要重启机器
+ulimit -n 1000000 
 ```
 
 ### 8. 开启防火墙
