@@ -1,6 +1,6 @@
-# solana-node-install
+# solana-rpc-install
 
-#### 按下面的安装，本人tsw上服务器配置可流畅运行RPC和GRPC节点服务:
+#### 按下面的安装，本人tsw上服务器配置可流畅运行RPC和GRPC服务:
 * CPU: AMD Epyc Genoa 9254
 * RAM: 384 GB
 
@@ -138,6 +138,7 @@ vim /etc/security/limits.conf
 
 # Increase process file descriptor count limit
 * - nofile 1000000
+
 ulimit -n 1000000 # 手动设置一下，不然需要重启机器
 ```
 
@@ -226,7 +227,7 @@ ExecStart=/root/sol/bin/validator.sh
 WantedBy=multi-user.target
 ```
 
-### 10. 用脚本启动节点
+### 10. 用脚本启动RPC节点
 ```shell
   # 进入root目录
   cd /root
@@ -237,7 +238,7 @@ WantedBy=multi-user.target
   # 赋予脚本可执行权限
   sudo chmod +x redo_node.sh
 
-  # 执行脚本，会自动下载快照，下载完成后启动节点
+  # 执行脚本，会自动下载快照，下载完成后启动RPC节点
   sudo ./redo_node.sh
 ```
 
