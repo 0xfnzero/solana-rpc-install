@@ -166,6 +166,7 @@ RUST_LOG=warn agave-validator \
  --accounts /root/sol/accounts \
  --identity /root/sol/bin/validator-keypair.json \
  --snapshots /root/sol/snapshot \
+ --geyser-plugin-config /root/sol/bin/yellowstone-config.json \
  --log /root/solana-rpc.log \
  --entrypoint entrypoint.mainnet-beta.solana.com:8001 \
  --entrypoint entrypoint2.mainnet-beta.solana.com:8001 \
@@ -227,7 +228,25 @@ ExecStart=/root/sol/bin/validator.sh
 WantedBy=multi-user.target
 ```
 
-### 10. 用脚本启动RPC节点
+### 10. 配置GRPC
+```shell
+# 安装解压缩包工具
+sudo apt-get install bzip2
+
+# 进入bin目录
+cd /root/sol/bin
+
+# 下载yellowstone-grpc压缩包
+sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v5.0.1%2Bsolana.2.1.16/yellowstone-grpc-geyser-release-x86_64-unknown-linux-gnu.tar.bz2
+
+# 解压缩包
+tar -xvjf  yellowstone-grpc-geyser-release-x86_64-unknown-linux-gnu.tar.bz2
+
+# 下载yellowstone-config.json配置文件, 这里面配置的GRPC端口号是: 10900
+sudo wget https://github.com/0xfnzero/solana-rpc-install/blob/main/yellowstone-config.json
+```
+
+### 11. 用脚本启动RPC节点
 ```shell
   # 进入root目录
   cd /root
@@ -240,9 +259,14 @@ WantedBy=multi-user.target
 
   # 执行脚本，会自动下载快照，下载完成后启动RPC节点
   sudo ./redo_node.sh
+
+  # 上面步骤执行完后, 通过下面命令可查看节点状态(需等待一些时间，大概1-2小时)
+  curl -X POST -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0", "id":1, "method":"getHealth"}' \
+    http://127.0.0.1:8899
 ```
 
-### 11. 相关命令
+### 12. 相关命令
 ```shell
 # 系统服务相关命令
 systemctl start sol
