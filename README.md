@@ -1,6 +1,6 @@
 # solana-rpc-install
 
-#### 按下面的安装，本人tsw上如下配置可流畅运行RPC和GRPC服务，但偶尔也会追不上，所以请慎重选择:
+#### 按下面的安装，本人tsw上如下配置可流畅运行RPC和GRPC服务，但偶尔也会追不上，建议使用比9254更好的CPU:
 * CPU: AMD Epyc Genoa 9254
 * RAM: 384 GB
 
