@@ -218,6 +218,21 @@ ExecStart=/root/sol/bin/validator.sh
 WantedBy=multi-user.target
 ```
 
+### 9. 用脚本启动节点
+```shell
+  # 进入root目录
+  cd /root
+
+  # 下载重做节点脚本
+  sudo wget https://github.com/0xfnzero/solana-node-install/blob/main/redo_node.sh
+
+  # 赋予脚本可执行权限
+  sudo chmod +x redo_node.sh
+
+  # 执行脚本，会自动下载快照，下载完成后启动节点
+  sudo ./redo_node.sh
+```
+
 ### 9. 相关命令
 ```shell
 # 系统服务相关命令
@@ -233,7 +248,7 @@ journalctl -u sol -f --no-hostname -o cat
 ps aux | grep solana-validator
 
 # 查看同步进度
-solana-keygen pubkey /root/validator-keypair.json
+solana-keygen pubkey /root/sol/bin/validator-keypair.json
 solana gossip | grep {pubkey}
 solana catchup {pubkey}
 ```

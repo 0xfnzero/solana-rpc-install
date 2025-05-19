@@ -1,0 +1,17 @@
+[Unit]
+Description=Solana Validator
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+LimitNOFILE=1000000
+LogRateLimitIntervalSec=0
+Environment="PATH=/bin:/usr/bin:/root/.local/share/solana/install/active_release/bin"
+ExecStart=/root/sol/bin/validator.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,41 @@
+#!/bin/bash
+
+RUST_LOG=warn agave-validator \
+ --geyser-plugin-config /root/sol/bin/yellowstone-config.json \
+ --ledger /root/sol/ledger \
+ --accounts /root/sol/accounts \
+ --identity /root/sol/bin/validator-keypair.json \
+ --snapshots /root/sol/snapshot \
+ --log /root/solana-rpc.log \
+ --entrypoint entrypoint.mainnet-beta.solana.com:8001 \
+ --entrypoint entrypoint2.mainnet-beta.solana.com:8001 \
+ --entrypoint entrypoint3.mainnet-beta.solana.com:8001 \
+ --entrypoint entrypoint4.mainnet-beta.solana.com:8001 \
+ --entrypoint entrypoint5.mainnet-beta.solana.com:8001 \
+ --known-validator Certusm1sa411sMpV9FPqU5dXAYhmmhygvxJ23S6hJ24 \
+ --known-validator 7Np41oeYqPefeNQEHSv1UDhYrehxin3NStELsSKCT4K2 \
+ --known-validator GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ \
+ --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
+ --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ \
+ --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
+ --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d \
+ --only-known-rpc \
+ --disable-banking-trace \
+ --rpc-bind-address 0.0.0.0 \
+ --rpc-port 8899 \
+ --full-rpc-api \
+ --private-rpc \
+ --no-voting \
+ --dynamic-port-range 8000-8020 \
+ --enable-rpc-transaction-history \
+ --enable-cpi-and-log-storage \
+ --wal-recovery-mode skip_any_corrupted_record \
+ --limit-ledger-size 60000000 \
+ --no-port-check \
+ --no-snapshot-fetch \
+ --account-index program-id \
+ --account-index-exclude-key TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA \
+ --account-index-exclude-key kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6 \
+ --full-snapshot-interval-slots 1577880000 \
+ --incremental-snapshot-interval-slots 788940000 \
+ --incremental-snapshot-archive-path /root/sol/snapshot
