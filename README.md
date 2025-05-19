@@ -7,8 +7,14 @@
 #### 挂载磁盘
 * 准备至少 3 个 NVMe 盘，一个系统盘，一个存账户数据，一个存账本数据。除系统盘外，每个硬盘推荐使用 2T 的存储空间。
 
+### 1. 安装openssl1.1
+```shell
+wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
 
-### 1. 创建目录和挂载硬盘命令
+sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
+```
+
+### 2. 创建目录和挂载硬盘命令
 ```shell
 sudo mkdir -p /root/sol/accounts
 sudo mkdir -p /root/sol/ledger
@@ -21,7 +27,7 @@ sudo mkfs.ext4 /dev/nvme1n1
 sudo mount /dev/nvme1n1 /root/sol/accounts
 ```
 
-### 2. 修改/etc/fstab配置，设置挂盘盘和关闭swap
+### 3. 修改/etc/fstab配置，设置挂盘盘和关闭swap
 ```shell
 vim /etc/fstab
 
@@ -36,7 +42,7 @@ UUID=xxxx-xxxx-xxxx-xxxx none swap sw 0 0
 sudo swapoff -a
 ```
 
-### 3. 将 cpu 设置为 performance 模式
+### 4. 将 cpu 设置为 performance 模式
 ```shell
 apt install linux-tools-common linux-tools-$(uname -r)
 
@@ -47,7 +53,7 @@ cpupower frequency-set --governor performance
 watch "grep 'cpu MHz' /proc/cpuinfo"
 ```
 
-### 4. 下载安装solana客户端
+### 5. 下载安装solana客户端
 ```shell
 sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.18/install)"
 
@@ -58,13 +64,13 @@ source /root/.bashrc
 solana --version
 ```
 
-### 5. 创建验证者私钥
+### 6. 创建验证者私钥
 ```shell
 cd /root/sol/bin
 solana-keygen new -o validator-keypair.json
 ```
 
-### 6. 系统调优
+### 7. 系统调优
 
 #### 修改/etc/sysctl.conf
 ```shell
@@ -135,7 +141,7 @@ vim /etc/security/limits.conf
 ulimit -n 1000000 # 手动设置一下，不然需要重启机器
 ```
 
-### 7. 开启防火墙
+### 8. 开启防火墙
 ```shell
 sudo ufw allow 22
 sudo ufw allow 8000:8020/tcp
@@ -147,7 +153,7 @@ sudo ufw enable
 sudo ufw status
 ```
 
-### 8. 创建启动脚本和服务
+### 9. 创建启动脚本和服务
 ```shell
 vim /root/sol/bin/validator.sh
 # 添加下面的内容
@@ -196,9 +202,11 @@ RUST_LOG=warn agave-validator \
 chmod +x /root/sol/bin/validator.sh
 ```
 
-#### vim /etc/systemd/system/sol.service
-#### 添加如下
+#### 新增 /etc/systemd/system/sol.service
 ```shell
+vim /etc/systemd/system/sol.service
+# 添加下面的内容
+
 [Unit]
 Description=Solana Validator
 After=network.target
@@ -218,7 +226,7 @@ ExecStart=/root/sol/bin/validator.sh
 WantedBy=multi-user.target
 ```
 
-### 9. 用脚本启动节点
+### 10. 用脚本启动节点
 ```shell
   # 进入root目录
   cd /root
@@ -233,7 +241,7 @@ WantedBy=multi-user.target
   sudo ./redo_node.sh
 ```
 
-### 9. 相关命令
+### 11. 相关命令
 ```shell
 # 系统服务相关命令
 systemctl start sol
