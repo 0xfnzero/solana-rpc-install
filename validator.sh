@@ -33,9 +33,9 @@ RUST_LOG=warn agave-validator \
  --limit-ledger-size 60000000 \
  --no-port-check \
  --no-snapshot-fetch \
+ --account-index-include-key AddressLookupTab1e1111111111111111111111111 \
  --account-index program-id \
- --account-index-exclude-key TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA \
- --account-index-exclude-key kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6 \
+ --rpc-bigtable-timeout 300 \
  --full-snapshot-interval-slots 1577880000 \
  --incremental-snapshot-interval-slots 788940000 \
  --incremental-snapshot-archive-path /root/sol/snapshot

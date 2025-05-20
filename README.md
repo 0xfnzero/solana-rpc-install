@@ -1,8 +1,8 @@
 # solana-rpc-install
 
-#### 按下面的安装，本人tsw上如下配置可流畅运行RPC和GRPC服务，但偶尔也会追不上，建议使用比9254更好的CPU:
-* CPU: AMD Epyc Genoa 9254
-* RAM: 384 GB
+#### 建议最低配置:
+* CPU: AMD Ryzen 9 9950X
+* RAM: 192 GB
 
 #### 挂载磁盘
 * 准备至少 3 个 NVMe 盘，一个系统盘，一个存账户数据，一个存账本数据。除系统盘外，每个硬盘推荐使用 2T 的存储空间。
