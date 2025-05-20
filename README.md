@@ -165,14 +165,14 @@ sudo ufw status
 vim /root/sol/bin/validator.sh
 # 添加下面的内容
 
-#!/bin/bash
+##!/bin/bash
 
 RUST_LOG=warn agave-validator \
+ --geyser-plugin-config /root/sol/bin/yellowstone-config.json \
  --ledger /root/sol/ledger \
  --accounts /root/sol/accounts \
  --identity /root/sol/bin/validator-keypair.json \
  --snapshots /root/sol/snapshot \
- --geyser-plugin-config /root/sol/bin/yellowstone-config.json \
  --log /root/solana-rpc.log \
  --entrypoint entrypoint.mainnet-beta.solana.com:8001 \
  --entrypoint entrypoint2.mainnet-beta.solana.com:8001 \
@@ -200,9 +200,9 @@ RUST_LOG=warn agave-validator \
  --limit-ledger-size 60000000 \
  --no-port-check \
  --no-snapshot-fetch \
+ --account-index-include-key AddressLookupTab1e1111111111111111111111111 \
  --account-index program-id \
- --account-index-exclude-key TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA \
- --account-index-exclude-key kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6 \
+ --rpc-bigtable-timeout 300 \
  --full-snapshot-interval-slots 1577880000 \
  --incremental-snapshot-interval-slots 788940000 \
  --incremental-snapshot-archive-path /root/sol/snapshot
