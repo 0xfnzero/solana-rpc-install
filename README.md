@@ -249,7 +249,7 @@ sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v5.0.1%2
 tar -xvjf  yellowstone-grpc-geyser-release-x86_64-unknown-linux-gnu.tar.bz2
 
 # 下载yellowstone-config.json配置文件, 这里面配置的GRPC端口号是: 10900
-sudo wget https://github.com/0xfnzero/solana-rpc-install/blob/main/yellowstone-config.json
+sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.1/yellowstone-config.json
 ```
 
 ### 11. 用脚本启动RPC节点
@@ -258,7 +258,7 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/blob/main/yellowstone-c
   cd /root
 
   # 下载重做节点脚本
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/blob/main/redo_node.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.1/redo_node.sh
 
   # 赋予脚本可执行权限
   sudo chmod +x redo_node.sh
