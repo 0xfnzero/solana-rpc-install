@@ -291,3 +291,6 @@ solana-keygen pubkey /root/sol/bin/validator-keypair.json
 solana gossip | grep {pubkey}
 solana catchup {pubkey}
 ```
+
+#### Telegram group:
+https://t.me/fnzero_group
