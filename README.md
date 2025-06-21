@@ -165,7 +165,7 @@ sudo ufw status
 vim /root/sol/bin/validator.sh
 # 添加下面的内容
 
-##!/bin/bash
+#!/bin/bash
 
 RUST_LOG=warn agave-validator \
  --geyser-plugin-config /root/sol/bin/yellowstone-config.json \
