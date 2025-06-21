@@ -19,6 +19,7 @@ sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
 sudo mkdir -p /root/sol/accounts
 sudo mkdir -p /root/sol/ledger
 sudo mkdir -p /root/sol/snapshot
+sudo mkdir -p /root/sol/bin
 
 sudo mkfs.ext4 /dev/nvme0n1
 sudo mount /dev/nvme0n1 /root/sol/ledger
@@ -55,7 +56,7 @@ watch "grep 'cpu MHz' /proc/cpuinfo"
 
 ### 5. 下载安装solana客户端
 ```shell
-sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.18/install)"
+sh -c "$(curl -sSfL https://release.anza.xyz/v2.2.16/install)"
 
 vim /root/.bashrc
 export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"
@@ -243,10 +244,10 @@ sudo apt-get install bzip2
 cd /root/sol/bin
 
 # 下载yellowstone-grpc压缩包
-sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v5.0.1%2Bsolana.2.1.16/yellowstone-grpc-geyser-release-x86_64-unknown-linux-gnu.tar.bz2
+sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v7.0.0%2Bsolana.2.2.16/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 
 # 解压缩包
-tar -xvjf  yellowstone-grpc-geyser-release-x86_64-unknown-linux-gnu.tar.bz2
+tar -xvjf yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 
 # 下载yellowstone-config.json配置文件, 这里面配置的GRPC端口号是: 10900
 sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.1/yellowstone-config.json
