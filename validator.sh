@@ -27,8 +27,6 @@ RUST_LOG=warn agave-validator \
  --private-rpc \
  --no-voting \
  --dynamic-port-range 8000-8020 \
- --enable-rpc-transaction-history \
- --enable-cpi-and-log-storage \
  --wal-recovery-mode skip_any_corrupted_record \
  --limit-ledger-size 60000000 \
  --no-port-check \
