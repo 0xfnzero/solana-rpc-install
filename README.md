@@ -251,7 +251,7 @@ sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v7.0.0%2
 tar -xvjf yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 
 # 下载yellowstone-config.json配置文件, 这里面配置的GRPC端口号是: 10900
-sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.1/yellowstone-config.json
+sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/yellowstone-config.json
 ```
 
 ### 11. 用脚本启动RPC节点
@@ -259,23 +259,27 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.1/
   # 进入root目录
   cd /root
 
-  # 下载重做节点脚本
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.1/redo_node.sh
+  # 下载必要的脚本
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/redo_node.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/get_health.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/catchup.sh
 
   # 赋予脚本可执行权限
   sudo chmod +x redo_node.sh
+  sudo chmod +x get_health.sh
+  sudo chmod +x catchup.sh
 
   # 执行脚本，会自动下载快照，下载完成后启动RPC节点
   sudo ./redo_node.sh
 
-  # 上面步骤执行完后, 通过下面命令可查看节点状态(需等待一些时间，大概30分钟左右)
+  # 查看日志
+  tail -f /root/solana-rpc.log
+  
+  # 执行脚本查看节点状态(预计30分钟后状态会是ok)
   ./get_health.sh
 
   # 实时查看追块同步进度
   ./catchup.sh
-
-  # 查看日志
-  tail -f /root/solana-rpc.log
 ```
 
 ### 12. 相关命令
