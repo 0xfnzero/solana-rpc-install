@@ -231,6 +231,9 @@ ExecStart=/root/sol/bin/validator.sh
 
 [Install]
 WantedBy=multi-user.target
+
+# 重新加载服务配置
+systemctl daemon-reload
 ```
 
 ### 10. 配置GRPC
@@ -265,10 +268,14 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.1/
   # 执行脚本，会自动下载快照，下载完成后启动RPC节点
   sudo ./redo_node.sh
 
-  # 上面步骤执行完后, 通过下面命令可查看节点状态(需等待一些时间，大概1-2小时)
-  curl -X POST -H "Content-Type: application/json" \
-    -d '{"jsonrpc":"2.0", "id":1, "method":"getHealth"}' \
-    http://127.0.0.1:8899
+  # 上面步骤执行完后, 通过下面命令可查看节点状态(需等待一些时间，大概30分钟左右)
+  ./get_health.sh
+
+  # 实时查看追块同步进度
+  ./catchup.sh
+
+  # 查看日志
+  tail -f /root/solana-rpc.log
 ```
 
 ### 12. 相关命令
@@ -279,16 +286,6 @@ systemctl status sol
 systemctl stop sol
 systemctl restart sol
 systemctl daemon-reload
-
-# 查看服务是否正常运行
-tail -f /root/solana-rpc.log
-journalctl -u sol -f --no-hostname -o cat
-ps aux | grep solana-validator
-
-# 查看同步进度
-solana-keygen pubkey /root/sol/bin/validator-keypair.json
-solana gossip | grep {pubkey}
-solana catchup {pubkey}
 ```
 
 #### Telegram group:
