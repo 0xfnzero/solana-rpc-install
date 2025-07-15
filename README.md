@@ -269,13 +269,13 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/
   sudo chmod +x get_health.sh
   sudo chmod +x catchup.sh
 
-  # 执行脚本，会自动下载快照，下载完成后启动RPC节点
+  # 自动下载快照，下载完成后启动RPC节点
   sudo ./redo_node.sh
 
   # 查看日志
   tail -f /root/solana-rpc.log
   
-  # 执行脚本查看节点状态(预计30分钟后状态会是ok)
+  # 查看节点状态(预计30分钟后状态会是ok)
   ./get_health.sh
 
   # 实时查看追块同步进度
