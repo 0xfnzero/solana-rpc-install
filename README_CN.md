@@ -1,20 +1,20 @@
 # solana-rpc-install
 
-#### Recommended Minimum Configuration:
+#### 建议最低配置:
 * CPU: AMD Ryzen 9 9950X
-* RAM: At least 192 GB
+* RAM: 至少 192 GB
 
-#### Mount Disks
-* Prepare at least 3 NVMe drives: one system disk (1T), one for account data (at least 2T), and one for ledger data (at least 2T).
+#### 挂载磁盘
+* 准备至少 3 个 NVMe 盘，一个系统盘(1T)，一个存账户数据(至少2T)，一个存账本数据(至少2T)。
 
-### 1. Install openssl1.1
+### 1. 安装openssl1.1
 ```shell
 wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
 
 sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
 ```
 
-### 2. Create directories and mount disks
+### 2. 创建目录和挂载硬盘命令
 ```shell
 sudo mkdir -p /root/sol/accounts
 sudo mkdir -p /root/sol/ledger
@@ -28,22 +28,22 @@ sudo mkfs.ext4 /dev/nvme1n1
 sudo mount /dev/nvme1n1 /root/sol/accounts
 ```
 
-### 3. Edit /etc/fstab to configure mounts and disable swap
+### 3. 修改/etc/fstab配置，设置挂盘盘和关闭swap
 ```shell
 vim /etc/fstab
 
-# Add the following two lines
+# 增加下面两行
 /dev/nvme0n1 /root/sol/ledger ext4 defaults 0 0
 /dev/nvme1n1 /root/sol/accounts ext4 defaults 0 0
 
-# Comment out lines containing none swap sw 0 0, and save changes with wq
+# 注释包含 none swap sw 0 0，并wq保存修改
 UUID=xxxx-xxxx-xxxx-xxxx none swap sw 0 0
 
-# Temporarily disable swap
+# 临时关闭swap
 sudo swapoff -a
 ```
 
-### 4. Set CPU to performance mode
+### 4. 将 cpu 设置为 performance 模式
 ```shell
 apt install linux-tools-common linux-tools-$(uname -r)
 
@@ -54,7 +54,7 @@ cpupower frequency-set --governor performance
 watch "grep 'cpu MHz' /proc/cpuinfo"
 ```
 
-### 5. Download and install Solana client
+### 5. 下载安装solana客户端
 ```shell
 sh -c "$(curl -sSfL https://release.anza.xyz/v2.2.16/install)"
 
@@ -65,18 +65,18 @@ source /root/.bashrc
 solana --version
 ```
 
-### 6. Create validator private key
+### 6. 创建验证者私钥
 ```shell
 cd /root/sol/bin
 solana-keygen new -o validator-keypair.json
 ```
 
-### 7. System tuning
+### 7. 系统调优
 
-#### Edit /etc/sysctl.conf
+#### 修改/etc/sysctl.conf
 ```shell
 vim /etc/sysctl.conf
-# Add the following content
+# 添加下面的内容
 
 # TCP Buffer Sizes (10k min, 87.38k default, 12M max)
 net.ipv4.tcp_rmem=10240 87380 12582912
@@ -119,52 +119,52 @@ fs.nr_open = 1000000
 ```
 
 ```shell
-# Reload configuration to take effect
+# 重新加载配置生效
 sysctl -p
 ```
 
-#### Edit /etc/systemd/system.conf
+#### 修改/etc/systemd/system.conf
 ```shell
 vim /etc/systemd/system.conf
-# Add the following content
+# 添加下面的内容
 
 DefaultLimitNOFILE=1000000
 
 
-# Reload configuration
+# 重新加载配置
 systemctl daemon-reload
 ```
 
-#### Edit /etc/security/limits.conf
+#### 修改/etc/security/limits.conf
 ```shell
 vim /etc/security/limits.conf
-# Add the following content
+# 添加下面的内容
 
 # Increase process file descriptor count limit
 * - nofile 1000000
 
-# Set manually, otherwise a reboot is required
+# 手动设置一下，不然需要重启机器
 ulimit -n 1000000 
 ```
 
-### 8. Enable firewall
+### 8. 开启防火墙
 ```shell
 sudo ufw enable
 
 sudo ufw allow 22
 sudo ufw allow 8000:8020/tcp
 sudo ufw allow 8000:8020/udp
-sudo ufw allow 8899 # http port
-sudo ufw allow 8900 # websocket port
-sudo ufw allow 10900 # GRPC port
+sudo ufw allow 8899 # http 端口
+sudo ufw allow 8900 # websocket 端口
+sudo ufw allow 10900 # GRPC 端口
 
 sudo ufw status
 ```
 
-### 9. Create startup script and service
+### 9. 创建启动脚本和服务
 ```shell
 vim /root/sol/bin/validator.sh
-# Add the following content
+# 添加下面的内容
 
 #!/bin/bash
 
@@ -209,10 +209,10 @@ RUST_LOG=warn agave-validator \
 chmod +x /root/sol/bin/validator.sh
 ```
 
-#### Add /etc/systemd/system/sol.service
+#### 新增 /etc/systemd/system/sol.service
 ```shell
 vim /etc/systemd/system/sol.service
-# Add the following content
+# 添加下面的内容
 
 [Unit]
 Description=Solana Validator
@@ -232,59 +232,59 @@ ExecStart=/root/sol/bin/validator.sh
 [Install]
 WantedBy=multi-user.target
 
-# Reload service configuration
+# 重新加载服务配置
 systemctl daemon-reload
 ```
 
-### 10. Configure GRPC
+### 10. 配置GRPC
 ```shell
-# Install decompression tool
+# 安装解压缩包工具
 sudo apt-get install bzip2
 
-# Enter bin directory
+# 进入bin目录
 cd /root/sol/bin
 
-# Download yellowstone-grpc archive
+# 下载yellowstone-grpc压缩包
 sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v7.0.0%2Bsolana.2.2.16/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 
-# Extract the archive
+# 解压缩包
 tar -xvjf yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 
-# Download yellowstone-config.json configuration file, the GRPC port configured here is: 10900
+# 下载yellowstone-config.json配置文件, 这里面配置的GRPC端口号是: 10900
 sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/yellowstone-config.json
 ```
 
-### 11. Start the RPC node with scripts
+### 11. 用脚本启动RPC节点
 ```shell
-  # Enter root directory
+  # 进入root目录
   cd /root
 
-  # Download necessary scripts
+  # 下载必要的脚本
   sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/redo_node.sh
   sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/get_health.sh
   sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/catchup.sh
 
-  # Grant execute permission to scripts
+  # 赋予脚本可执行权限
   sudo chmod +x redo_node.sh
   sudo chmod +x get_health.sh
   sudo chmod +x catchup.sh
 
-  # Automatically download snapshot, and start the RPC node after download is complete
+  # 自动下载快照，下载完成后启动RPC节点
   sudo ./redo_node.sh
 
-  # View logs
+  # 查看日志
   tail -f /root/solana-rpc.log
   
-  # Check node status (expected to be ok after about 30 minutes)
+  # 查看节点状态(预计30分钟后状态会是ok)
   ./get_health.sh
 
-  # View catchup progress in real time
+  # 实时查看追块同步进度
   ./catchup.sh
 ```
 
-### 12. Related commands
+### 12. 相关命令
 ```shell
-# System service related commands
+# 系统服务相关命令
 systemctl start sol
 systemctl status sol
 systemctl stop sol
