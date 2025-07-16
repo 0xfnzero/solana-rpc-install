@@ -1,6 +1,6 @@
 # solana-rpc-install
 
-[中文](https://github.com/0xfnzero/solana-rpc-install/blob/main/README_CN.md) | [English README](https://github.com/0xfnzero/solana-rpc-install/blob/main/README.md)
+[中文](https://github.com/0xfnzero/solana-rpc-install/blob/main/README_CN.md) | [English](https://github.com/0xfnzero/solana-rpc-install/blob/main/README.md) | [电报](https://t.me/fnzero_group)
 
 #### 建议最低配置:
 * CPU: AMD Ryzen 9 9950X
