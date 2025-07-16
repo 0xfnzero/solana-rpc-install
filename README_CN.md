@@ -1,6 +1,6 @@
 # solana-rpc-install
 
-[中文](https://github.com/0xfnzero/solana-rpc-install/blob/main/README_CN.md) | [English](https://github.com/0xfnzero/solana-rpc-install/blob/main/README.md) | [电报群](https://t.me/fnzero_group)
+[中文](https://github.com/0xfnzero/solana-rpc-install/blob/main/README_CN.md) | [English](https://github.com/0xfnzero/solana-rpc-install/blob/main/README.md) | [Telegram](https://t.me/fnzero_group)
 
 solana节点安装教程，通过优化ubuntu系统参数，让solana节点可以在更便宜的服务器上运行，并保持较好的性能和区块同步速度
 
