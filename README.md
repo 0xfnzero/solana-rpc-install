@@ -6,7 +6,7 @@ Solana Node Installation Guide: Optimize Ubuntu system parameters to allow the S
 
 #### Recommended Minimum Configuration:
 * CPU: AMD Ryzen 9 9950X
-* RAM: At least 192 GB
+* RAM: At least 128 GB
 
 #### Mount Disks
 * Prepare at least 3 NVMe drives: one system disk (1T), one for account data (at least 2T), and one for ledger data (at least 2T).
