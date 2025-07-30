@@ -26,19 +26,21 @@ sudo mkdir -p /root/sol/snapshot
 sudo mkdir -p /root/sol/bin
 
 sudo mkfs.ext4 /dev/nvme0n1
-sudo mount /dev/nvme0n1 /root/sol/ledger
+sudo mount /dev/nvme0n1 /root/sol/accounts
 
+# If you only have two disks, ignore the following two lines
 sudo mkfs.ext4 /dev/nvme1n1
-sudo mount /dev/nvme1n1 /root/sol/accounts
+sudo mount /dev/nvme1n1 /root/sol/ledger
 ```
 
 ### 3. Edit /etc/fstab to configure mounts and disable swap
 ```shell
 vim /etc/fstab
 
-# Add the following two lines
-/dev/nvme0n1 /root/sol/ledger ext4 defaults 0 0
-/dev/nvme1n1 /root/sol/accounts ext4 defaults 0 0
+# Add the following lines
+/dev/nvme0n1 /root/sol/accounts ext4 defaults 0 0
+# If you only have two disks, ignore this line
+/dev/nvme1n1 /root/sol/ledger ext4 defaults 0 0
 
 # Comment out lines containing none swap sw 0 0, and save changes with wq
 UUID=xxxx-xxxx-xxxx-xxxx none swap sw 0 0
