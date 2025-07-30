@@ -9,7 +9,7 @@ solana节点安装教程，通过优化ubuntu系统参数，让solana节点可�
 * RAM: 至少 128 GB
 
 #### 挂载磁盘
-* 准备至少 3 个 NVMe 盘，一个系统盘(1T)，一个存账户数据(至少2T)，一个存账本数据(至少2T)。
+* 建议准备 3 个 NVMe 盘，一个系统盘(1T)，一个存账户数据(至少2T)，一个存账本数据(至少2T)。
 
 ### 1. 安装openssl1.1
 ```shell
@@ -26,19 +26,21 @@ sudo mkdir -p /root/sol/snapshot
 sudo mkdir -p /root/sol/bin
 
 sudo mkfs.ext4 /dev/nvme0n1
-sudo mount /dev/nvme0n1 /root/sol/ledger
+sudo mount /dev/nvme0n1 /root/sol/accounts
 
+# 如果你只有两个盘，忽略这两行内容
 sudo mkfs.ext4 /dev/nvme1n1
-sudo mount /dev/nvme1n1 /root/sol/accounts
+sudo mount /dev/nvme1n1 /root/sol/ledger
 ```
 
 ### 3. 修改/etc/fstab配置，设置挂盘盘和关闭swap
 ```shell
 vim /etc/fstab
 
-# 增加下面两行
-/dev/nvme0n1 /root/sol/ledger ext4 defaults 0 0
-/dev/nvme1n1 /root/sol/accounts ext4 defaults 0 0
+# 增加下面的内容
+/dev/nvme0n1 /root/sol/accounts ext4 defaults 0 0
+# 如果你只有两个盘，忽略这行内容
+/dev/nvme1n1 /root/sol/ledger ext4 defaults 0 0
 
 # 注释包含 none swap sw 0 0，并wq保存修改
 UUID=xxxx-xxxx-xxxx-xxxx none swap sw 0 0
