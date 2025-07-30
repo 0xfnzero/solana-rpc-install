@@ -28,7 +28,7 @@ sudo mkdir -p /root/sol/bin
 sudo mkfs.ext4 /dev/nvme0n1
 sudo mount /dev/nvme0n1 /root/sol/accounts
 
-# 如果你只有两个盘，忽略这两行内容
+# 如果你只有两个盘，忽略下面两行命令
 sudo mkfs.ext4 /dev/nvme1n1
 sudo mount /dev/nvme1n1 /root/sol/ledger
 ```
@@ -39,7 +39,7 @@ vim /etc/fstab
 
 # 增加下面的内容
 /dev/nvme0n1 /root/sol/accounts ext4 defaults 0 0
-# 如果你只有两个盘，忽略这行内容
+# 如果你只有两个盘，忽略下面这行内容
 /dev/nvme1n1 /root/sol/ledger ext4 defaults 0 0
 
 # 注释包含 none swap sw 0 0，并wq保存修改
