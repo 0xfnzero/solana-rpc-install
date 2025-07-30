@@ -28,7 +28,7 @@ sudo mkdir -p /root/sol/bin
 sudo mkfs.ext4 /dev/nvme0n1
 sudo mount /dev/nvme0n1 /root/sol/accounts
 
-# If you only have two disks, ignore the following two lines
+# If you only have two disks, ignore the following two commands.
 sudo mkfs.ext4 /dev/nvme1n1
 sudo mount /dev/nvme1n1 /root/sol/ledger
 ```
@@ -39,7 +39,7 @@ vim /etc/fstab
 
 # Add the following lines
 /dev/nvme0n1 /root/sol/accounts ext4 defaults 0 0
-# If you only have two disks, ignore this line
+# If you only have two disks, ignore the following line.
 /dev/nvme1n1 /root/sol/ledger ext4 defaults 0 0
 
 # Comment out lines containing none swap sw 0 0, and save changes with wq
