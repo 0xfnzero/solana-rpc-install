@@ -2,54 +2,82 @@
 
 [中文](https://github.com/0xfnzero/solana-rpc-install/blob/main/README_CN.md) | [English](https://github.com/0xfnzero/solana-rpc-install/blob/main/README.md) | [Telegram](https://t.me/fnzero_group)
 
-Solana Node Installation Guide: Optimize Ubuntu system parameters to allow the Solana node to run on more affordable servers while maintaining good performance and block synchronization speed.
+Solana node installation tutorial. By optimizing Ubuntu system parameters, the Solana node can run on more affordable servers while maintaining good performance and block synchronization speed.
 
 #### Recommended Minimum Configuration:
+
 * CPU: AMD Ryzen 9 9950X
 * RAM: At least 128 GB
 
 #### Mount Disks
-* Prepare at least 3 NVMe drives: one system disk (1T), one for account data (at least 2T), and one for ledger data (at least 2T).
 
-### 1. Install openssl1.1
+* It is recommended to prepare 3 NVMe disks: one system disk (1T), one for storing account data (at least 2T), and one for storing ledger data (at least 2T).
+
+### 1. Install OpenSSL 1.1
+
 ```shell
 wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
 
 sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
 ```
 
-### 2. Create directories and mount disks
+### 2. Create Directories
+
 ```shell
 sudo mkdir -p /root/sol/accounts
 sudo mkdir -p /root/sol/ledger
 sudo mkdir -p /root/sol/snapshot
 sudo mkdir -p /root/sol/bin
+```
 
+### 3. View Disk Information
+
+```shell
+# Run the following command to check disks:
+lsblk
+
+# For example, output like the following means there are only two disks:
+NAME        MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+nvme1n1     259:0    0  1.7T  0 disk
+├─nvme1n1p1 259:2    0  512M  0 part /boot/efi
+└─nvme1n1p2 259:3    0  1.7T  0 part /
+nvme0n1     259:1    0  1.7T  0 disk
+
+# nvme1n1 is the system disk because it contains /boot/efi
+# nvme0n1 can be used to mount the accounts directory
+# If nvme2n1 exists, it can be used to mount the ledger directory
+```
+
+### 4. Mount Directories
+
+```shell
 sudo mkfs.ext4 /dev/nvme0n1
 sudo mount /dev/nvme0n1 /root/sol/accounts
 
-# If you only have two disks, ignore the following two commands.
+# If you only have two disks, ignore the following two commands
 sudo mkfs.ext4 /dev/nvme1n1
 sudo mount /dev/nvme1n1 /root/sol/ledger
 ```
 
-### 3. Edit /etc/fstab to configure mounts and disable swap
+### 5. Modify /etc/fstab Configuration to Set Mount Points and Disable Swap
+
 ```shell
 vim /etc/fstab
 
 # Add the following lines
 /dev/nvme0n1 /root/sol/accounts ext4 defaults 0 0
-# If you only have two disks, ignore the following line.
+# If you only have two disks, ignore the following line
 /dev/nvme1n1 /root/sol/ledger ext4 defaults 0 0
 
-# Comment out lines containing none swap sw 0 0, and save changes with wq
+# Comment out the line containing none swap sw 0 0, then save and exit
 UUID=xxxx-xxxx-xxxx-xxxx none swap sw 0 0
 
 # Temporarily disable swap
 sudo swapoff -a
 ```
 
-### 4. Set CPU to performance mode
+### 6. Set CPU to Performance Mode
+
 ```shell
 apt install linux-tools-common linux-tools-$(uname -r)
 
@@ -60,7 +88,8 @@ cpupower frequency-set --governor performance
 watch "grep 'cpu MHz' /proc/cpuinfo"
 ```
 
-### 5. Download and install Solana client
+### 7. Download and Install Solana CLI
+
 ```shell
 sh -c "$(curl -sSfL https://release.anza.xyz/v2.2.16/install)"
 
@@ -71,15 +100,17 @@ source /root/.bashrc
 solana --version
 ```
 
-### 6. Create validator private key
+### 8. Create Validator Keypair
+
 ```shell
 cd /root/sol/bin
 solana-keygen new -o validator-keypair.json
 ```
 
-### 7. System tuning
+### 9. System Optimization
 
-#### Edit /etc/sysctl.conf
+#### Modify /etc/sysctl.conf
+
 ```shell
 vim /etc/sysctl.conf
 # Add the following content
@@ -125,23 +156,24 @@ fs.nr_open = 1000000
 ```
 
 ```shell
-# Reload configuration to take effect
+# Reload configuration
 sysctl -p
 ```
 
-#### Edit /etc/systemd/system.conf
+#### Modify /etc/systemd/system.conf
+
 ```shell
 vim /etc/systemd/system.conf
 # Add the following content
 
 DefaultLimitNOFILE=1000000
 
-
-# Reload configuration
+# Reload service configuration
 systemctl daemon-reload
 ```
 
-#### Edit /etc/security/limits.conf
+#### Modify /etc/security/limits.conf
+
 ```shell
 vim /etc/security/limits.conf
 # Add the following content
@@ -149,25 +181,27 @@ vim /etc/security/limits.conf
 # Increase process file descriptor count limit
 * - nofile 1000000
 
-# Set manually, otherwise a reboot is required
-ulimit -n 1000000 
+# Set manually, otherwise reboot is required
+ulimit -n 1000000
 ```
 
-### 8. Enable firewall
+### 10. Enable Firewall
+
 ```shell
 sudo ufw enable
 
 sudo ufw allow 22
 sudo ufw allow 8000:8020/tcp
 sudo ufw allow 8000:8020/udp
-sudo ufw allow 8899 # http port
-sudo ufw allow 8900 # websocket port
+sudo ufw allow 8899 # HTTP port
+sudo ufw allow 8900 # WebSocket port
 sudo ufw allow 10900 # GRPC port
 
 sudo ufw status
 ```
 
-### 9. Create startup script and service
+### 11. Create Startup Script and Service
+
 ```shell
 vim /root/sol/bin/validator.sh
 # Add the following content
@@ -216,6 +250,7 @@ chmod +x /root/sol/bin/validator.sh
 ```
 
 #### Add /etc/systemd/system/sol.service
+
 ```shell
 vim /etc/systemd/system/sol.service
 # Add the following content
@@ -242,9 +277,10 @@ WantedBy=multi-user.target
 systemctl daemon-reload
 ```
 
-### 10. Configure GRPC
+### 12. Configure GRPC
+
 ```shell
-# Install decompression tool
+# Install unzip tool
 sudo apt-get install bzip2
 
 # Enter bin directory
@@ -253,14 +289,15 @@ cd /root/sol/bin
 # Download yellowstone-grpc archive
 sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v7.0.0%2Bsolana.2.2.16/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 
-# Extract the archive
+# Extract archive
 tar -xvjf yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 
-# Download yellowstone-config.json configuration file, the GRPC port configured here is: 10900
+# Download yellowstone-config.json, GRPC port configured here: 10900
 sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/yellowstone-config.json
 ```
 
-### 11. Start the RPC node with scripts
+### 13. Start RPC Node Using Script
+
 ```shell
   # Enter root directory
   cd /root
@@ -270,27 +307,28 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/
   sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/get_health.sh
   sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/catchup.sh
 
-  # Grant execute permission to scripts
+  # Grant execute permissions to scripts
   sudo chmod +x redo_node.sh
   sudo chmod +x get_health.sh
   sudo chmod +x catchup.sh
 
-  # Automatically download snapshot, and start the RPC node after download is complete
+  # Automatically download snapshot and start RPC node after download
   sudo ./redo_node.sh
 
   # View logs
   tail -f /root/solana-rpc.log
   
-  # Check node status (expected to be ok after about 30 minutes)
+  # Check node status (expected to be ok after ~30 minutes)
   ./get_health.sh
 
-  # View catchup progress in real time
+  # Real-time block synchronization progress
   ./catchup.sh
 ```
 
-### 12. Related commands
+### 14. Related Commands
+
 ```shell
-# System service related commands
+# System service commands
 systemctl start sol
 systemctl status sol
 systemctl stop sol
@@ -299,4 +337,5 @@ systemctl daemon-reload
 ```
 
 #### Telegram group:
-https://t.me/fnzero_group
+
+[https://t.me/fnzero\_group](https://t.me/fnzero_group)
