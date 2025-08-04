@@ -60,7 +60,7 @@ watch "grep 'cpu MHz' /proc/cpuinfo"
 
 ### 5. 下载安装solana客户端
 ```shell
-sh -c "$(curl -sSfL https://release.anza.xyz/v2.2.16/install)"
+sh -c "$(curl -sSfL https://release.anza.xyz/v2.3.6/install)"
 
 vim /root/.bashrc
 export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"
@@ -249,7 +249,7 @@ sudo apt-get install bzip2
 cd /root/sol/bin
 
 # 下载yellowstone-grpc压缩包
-sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v7.0.0%2Bsolana.2.2.16/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
+sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v8.0.0%2Bsolana.2.3.6/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 
 # 解压缩包
 tar -xvjf yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
@@ -265,15 +265,14 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/
 
   # 下载必要的脚本
   sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/redo_node.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/restart_node.sh
   sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/get_health.sh
   sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/catchup.sh
 
   # 赋予脚本可执行权限
-  sudo chmod +x redo_node.sh
-  sudo chmod +x get_health.sh
-  sudo chmod +x catchup.sh
+  sudo chmod +x *.sh
 
-  # 自动下载快照，下载完成后启动RPC节点
+  # 自动下载快照，下载完成后会自动启动RPC节点
   sudo ./redo_node.sh
 
   # 查看日志
@@ -284,6 +283,9 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/
 
   # 实时查看追块同步进度
   ./catchup.sh
+
+  # 重启节点, 如果追不上块可以重启
+  ./restart_node.sh
 ```
 
 ### 12. 相关命令
