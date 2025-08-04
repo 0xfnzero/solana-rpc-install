@@ -6,10 +6,10 @@ solana节点安装教程，通过优化ubuntu系统参数，让solana节点可�
 
 #### 建议最低配置:
 * CPU: AMD Ryzen 9 9950X
-* RAM: 至少 192 GB
+* RAM: 至少 128 GB
 
 #### 挂载磁盘
-* 准备至少 3 个 NVMe 盘，一个系统盘(1T)，一个存账户数据(至少2T)，一个存账本数据(至少2T)。
+* 建议准备 3 个 NVMe 盘，一个系统盘(1T)，一个存账户数据(至少2T)，一个存账本数据(至少2T)。
 
 ### 1. 安装openssl1.1
 ```shell
@@ -18,27 +18,49 @@ wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubun
 sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
 ```
 
-### 2. 创建目录和挂载硬盘命令
+### 2. 创建目录
 ```shell
 sudo mkdir -p /root/sol/accounts
 sudo mkdir -p /root/sol/ledger
 sudo mkdir -p /root/sol/snapshot
 sudo mkdir -p /root/sol/bin
-
-sudo mkfs.ext4 /dev/nvme0n1
-sudo mount /dev/nvme0n1 /root/sol/ledger
-
-sudo mkfs.ext4 /dev/nvme1n1
-sudo mount /dev/nvme1n1 /root/sol/accounts
 ```
 
-### 3. 修改/etc/fstab配置，设置挂盘盘和关闭swap
+### 3. 查看硬盘信息
+```shell
+# 输入下面的命令查看硬盘:
+lsblk
+
+# 例如输出信息如下，这是只有两个硬盘的情况:
+NAME        MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+nvme1n1     259:0    0  1.7T  0 disk 
+├─nvme1n1p1 259:2    0  512M  0 part /boot/efi
+└─nvme1n1p2 259:3    0  1.7T  0 part /
+nvme0n1     259:1    0  1.7T  0 disk
+
+# nvme1n1为系统盘，因为有/boot/efi
+# nvme0n1可用来挂载accounts目录
+# 如果还有nvme2n1, 可用来挂载ledger目录
+```
+
+### 4. 挂载目录
+```shell
+sudo mkfs.ext4 /dev/nvme0n1
+sudo mount /dev/nvme0n1 /root/sol/accounts
+
+# 如果你只有两个盘，忽略下面两行命令
+sudo mkfs.ext4 /dev/nvme1n1
+sudo mount /dev/nvme1n1 /root/sol/ledger
+```
+
+### 5. 修改/etc/fstab配置，设置挂盘盘和关闭swap
 ```shell
 vim /etc/fstab
 
-# 增加下面两行
-/dev/nvme0n1 /root/sol/ledger ext4 defaults 0 0
-/dev/nvme1n1 /root/sol/accounts ext4 defaults 0 0
+# 增加下面的内容
+/dev/nvme0n1 /root/sol/accounts ext4 defaults 0 0
+# 如果你只有两个盘，忽略下面这行内容
+/dev/nvme1n1 /root/sol/ledger ext4 defaults 0 0
 
 # 注释包含 none swap sw 0 0，并wq保存修改
 UUID=xxxx-xxxx-xxxx-xxxx none swap sw 0 0
@@ -47,7 +69,7 @@ UUID=xxxx-xxxx-xxxx-xxxx none swap sw 0 0
 sudo swapoff -a
 ```
 
-### 4. 将 cpu 设置为 performance 模式
+### 6. 将 cpu 设置为 performance 模式
 ```shell
 apt install linux-tools-common linux-tools-$(uname -r)
 
@@ -58,7 +80,7 @@ cpupower frequency-set --governor performance
 watch "grep 'cpu MHz' /proc/cpuinfo"
 ```
 
-### 5. 下载安装solana客户端
+### 7. 下载安装solana客户端
 ```shell
 sh -c "$(curl -sSfL https://release.anza.xyz/v2.3.6/install)"
 
@@ -69,13 +91,13 @@ source /root/.bashrc
 solana --version
 ```
 
-### 6. 创建验证者私钥
+### 8. 创建验证者私钥
 ```shell
 cd /root/sol/bin
 solana-keygen new -o validator-keypair.json
 ```
 
-### 7. 系统调优
+### 9. 系统调优
 
 #### 修改/etc/sysctl.conf
 ```shell
@@ -151,7 +173,7 @@ vim /etc/security/limits.conf
 ulimit -n 1000000 
 ```
 
-### 8. 开启防火墙
+### 10. 开启防火墙
 ```shell
 sudo ufw enable
 
@@ -165,7 +187,7 @@ sudo ufw allow 10900 # GRPC 端口
 sudo ufw status
 ```
 
-### 9. 创建启动脚本和服务
+### 11. 创建启动脚本和服务
 ```shell
 vim /root/sol/bin/validator.sh
 # 添加下面的内容
@@ -240,7 +262,7 @@ WantedBy=multi-user.target
 systemctl daemon-reload
 ```
 
-### 10. 配置GRPC
+### 12. 配置GRPC
 ```shell
 # 安装解压缩包工具
 sudo apt-get install bzip2
@@ -258,7 +280,7 @@ tar -xvjf yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/yellowstone-config.json
 ```
 
-### 11. 用脚本启动RPC节点
+### 13. 用脚本启动RPC节点
 ```shell
   # 进入root目录
   cd /root
@@ -288,7 +310,7 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/
   ./restart_node.sh
 ```
 
-### 12. 相关命令
+### 14. 相关命令
 ```shell
 # 系统服务相关命令
 systemctl start sol
