@@ -16,6 +16,8 @@ Solana node installation tutorial. By optimizing Ubuntu system parameters, the S
 #### Mount Disks
 
 * It is recommended to prepare 3 NVMe disks: one system disk (1T), one for storing account data (at least 2T), and one for storing ledger data (at least 2T).
+* If there are only 2 NVMe drives, the system disk will store the ledger data. In step 4 below (mounting directories), the ledger directory will be excluded from mounting.
+
 
 ### 1. Install OpenSSL 1.1
 
