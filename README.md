@@ -8,7 +8,10 @@ Solana node installation tutorial. By optimizing Ubuntu system parameters, the S
 
 * CPU: AMD Ryzen 9 9950X
 * RAM: At least 192 GB
-* It is recommended to prioritize the tsw.io cloud service provider, as some providers may have significant performance differences even with the same configuration.
+* It’s recommended to prioritize choosing a TSW provider, as some providers may have significant performance differences even with the same configuration. Network, disk, and RAM can all affect node stability and gRPC speed.
+* Although my TSW 9950X in the NY region with 128 GB RAM runs normally, some users in the AMS3 region with 128 GB RAM experience OOM after running for a while. Therefore, it’s recommended to have at least 192 GB of RAM.
+* However, my InterServer 9950X in the NY region with 192 GB RAM still encounters OOM every day.
+
 
 #### Mount Disks
 
