@@ -7,7 +7,7 @@ Solana node installation tutorial. By optimizing Ubuntu system parameters, the S
 #### Recommended Minimum Configuration:
 
 * CPU: AMD Ryzen 9 9950X
-* RAM: At least 128 GB
+* RAM: At least 192 GB
 * It is recommended to prioritize the tsw.io cloud service provider, as some providers may have significant performance differences even with the same configuration.
 
 #### Mount Disks
