@@ -7,12 +7,17 @@ Solana node installation tutorial. By optimizing Ubuntu system parameters, the S
 #### Recommended Minimum Configuration:
 
 * CPU: AMD Ryzen 9 9950X
-* RAM: At least 128 GB
-* It is recommended to prioritize the tsw.io cloud service provider, as some providers may have significant performance differences even with the same configuration.
+* RAM: At least 192 GB
+* It’s recommended to prioritize choosing a TSW provider, as some providers may have significant performance differences even with the same configuration. Network, disk, and RAM can all affect node stability and gRPC speed.
+* Although my TSW 9950X in the NY region with 128 GB RAM runs normally, some users in the AMS3 region with 128 GB RAM experience OOM after running for a while. Therefore, it’s recommended to have at least 192 GB of RAM.
+* However, my InterServer 9950X in the NY region with 192 GB RAM still encounters OOM every day.
+
 
 #### Mount Disks
 
 * It is recommended to prepare 3 NVMe disks: one system disk (1T), one for storing account data (at least 2T), and one for storing ledger data (at least 2T).
+* If there are only 2 NVMe drives, the system disk will store the ledger data. In step 4 below (mounting directories), the ledger directory will be excluded from mounting.
+
 
 ### 1. Install OpenSSL 1.1
 
