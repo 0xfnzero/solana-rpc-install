@@ -33,7 +33,7 @@ sudo apt-get install -y python3-venv git
 # 克隆或更新 solana-snapshot-finder 仓库
 if [ ! -d "solana-snapshot-finder" ]; then
   echo "Cloning solana-snapshot-finder repository..."
-  git clone https://github.com/c29r3/solana-snapshot-finder.git
+  git clone https://github.com/0xfnzero/solana-snapshot-finder
 else
   echo "Repository solana-snapshot-finder already exists, pulling latest changes..."
   cd solana-snapshot-finder
