@@ -2,6 +2,14 @@
 
 [中文](https://github.com/0xfnzero/solana-rpc-install/blob/main/README_CN.md) | [English](https://github.com/0xfnzero/solana-rpc-install/blob/main/README.md) | [Telegram](https://t.me/fnzero_group)
 
+## 📖 Installation Method Selection
+
+**🚀 Quick Install** (Recommended for beginners): [FAST-INSTALL-EN.md](https://github.com/0xfnzero/solana-rpc-install/blob/main/FAST-INSTALL-EN.md) - Three-step automated installation, suitable for quick deployment
+
+**📚 Detailed Tutorial** (Recommended for advanced users): This document - Manual step-by-step installation, suitable for learning and understanding each step
+
+---
+
 Solana node installation tutorial. By optimizing Ubuntu system parameters, the Solana node can run on more affordable servers while maintaining good performance and block synchronization speed.
 
 #### Recommended Minimum Configuration:

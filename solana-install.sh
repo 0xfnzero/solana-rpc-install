@@ -33,7 +33,7 @@ YELLOWSTONE_TARBALL_URL="https://github.com/rpcpool/yellowstone-grpc/releases/do
 YELLOWSTONE_CFG_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/yellowstone-config.json"
 
 # Snapshot/ops scripts
-REDO_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/redo_node.sh"
+REDO_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.4/redo_node.sh"
 RESTART_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/restart_node.sh"
 GET_HEALTH_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/get_health.sh"
 CATCHUP_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/catchup.sh"
