@@ -290,7 +290,7 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/
   cd /root
 
   # 下载必要的脚本
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/redo_node.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.4/redo_node.sh
   sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/restart_node.sh
   sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/get_health.sh
   sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.3/catchup.sh
