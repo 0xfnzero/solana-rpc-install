@@ -60,10 +60,10 @@ chmod +x solana-install.sh
 
 ```bash
 # 首先运行系统优化 (需要 root 权限)
-sudo bash system-optimize.sh
+sudo ./system-optimize.sh
 
 # 然后运行 Solana 安装 (需要 root 权限)
-sudo bash solana-install.sh
+sudo ./solana-install.sh
 ```
 
 **重要提示：**
@@ -80,10 +80,10 @@ sudo bash solana-install.sh
 tail -f /root/solana-rpc.log
 
 # 检查节点健康状态 (约30分钟后应该显示 ok)
-/root/get_health.sh
+./get_health.sh
 
 # 监控区块同步进度
-/root/catchup.sh
+./catchup.sh
 ```
 
 ### 管理命令

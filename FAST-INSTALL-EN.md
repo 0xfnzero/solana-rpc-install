@@ -60,10 +60,10 @@ chmod +x solana-install.sh
 
 ```bash
 # First, run system optimization (requires root)
-sudo bash system-optimize.sh
+sudo ./system-optimize.sh
 
 # Then, run Solana installation (requires root)
-sudo bash solana-install.sh
+sudo ./solana-install.sh
 ```
 
 **Important Notes:**
@@ -76,14 +76,16 @@ sudo bash solana-install.sh
 
 ### Check Node Status
 ```bash
+cd /root
+
 # View logs
-tail -f /root/solana-rpc.log
+tail -f solana-rpc.log
 
 # Check node health (should be ok after ~30 minutes)
-/root/get_health.sh
+./get_health.sh
 
 # Monitor block synchronization progress
-/root/catchup.sh
+./catchup.sh
 ```
 
 ### Management Commands
