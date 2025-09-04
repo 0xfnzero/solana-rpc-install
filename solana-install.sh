@@ -89,7 +89,7 @@ CANDIDATES=()
 for d in "${MAP_DISKS[@]}"; do
   disk="/dev/$d"
   [[ -n "$ROOT_DISK" && "$disk" == "$ROOT_DISK" ]] && continue
-  parts=($(lsblk -n -o NAME,TYPE "$disk" | awk '$2=="part"{print $1}'))
+  parts=($(lsblk -n -o NAME,TYPE "$disk" | awk '$2=="part"{gsub(/^[├─└│ ]*/, "", $1); print $1}'))
   if ((${#parts[@]}==0)); then
     is_mounted_dev "$disk" || CANDIDATES+=("$disk")
   else
