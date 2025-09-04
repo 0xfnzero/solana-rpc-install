@@ -21,7 +21,7 @@
 
 ```bash
 # 下载系统优化脚本
-wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.4/system-optimize.sh
+wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/system-optimize.sh
 
 # 赋予执行权限
 chmod +x system-optimize.sh
@@ -38,7 +38,7 @@ chmod +x system-optimize.sh
 
 ```bash
 # 下载 Solana 安装脚本
-wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.4/solana-install.sh
+wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/solana-install.sh
 
 # 赋予执行权限
 chmod +x solana-install.sh
