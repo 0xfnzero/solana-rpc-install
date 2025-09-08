@@ -17,7 +17,6 @@ RUST_LOG=warn agave-validator \
  --known-validator GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ \
  --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
  --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ \
- --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d \
  --only-known-rpc \
  --disable-banking-trace \
@@ -34,6 +33,6 @@ RUST_LOG=warn agave-validator \
  --account-index-include-key AddressLookupTab1e1111111111111111111111111 \
  --account-index program-id \
  --rpc-bigtable-timeout 300 \
- --full-snapshot-interval-slots 1577880000 \
- --incremental-snapshot-interval-slots 788940000 \
+ --full-snapshot-interval-slots 25000 \
+ --incremental-snapshot-interval-slots 1000 \
  --incremental-snapshot-archive-path /root/sol/snapshot
