@@ -1,4 +1,4 @@
-[中文](https://github.com/0xfnzero/solana-rpc-install/blob/main/README_CN.md) | [English](https://github.com/0xfnzero/solana-rpc-install/blob/main/README.md) | [Telegram](https://t.me/fnzero_group) | [Discord](https://discord.gg/3At4eaUt)
+[中文](https://github.com/0xfnzero/solana-rpc-install/blob/main/README_CN.md) | [English](https://github.com/0xfnzero/solana-rpc-install/blob/main/README.md) | [Telegram](https://t.me/fnzero_group) | [Discord](https://discord.gg/ckf5UHxz)
 
 # Solana RPC 节点快速安装指南
 
