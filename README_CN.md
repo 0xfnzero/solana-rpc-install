@@ -93,15 +93,10 @@ watch "grep 'cpu MHz' /proc/cpuinfo"
 ```
 
 ### 7. 下载安装solana客户端
-```shell
-sh -c "$(curl -sSfL https://release.anza.xyz/v2.3.6/install)"
 
-vim /root/.bashrc
-export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"
-source /root/.bashrc
+**注意**: 自动化安装脚本运行时，会提示你输入 Solana 版本号（例如 v2.3.13、v3.0.6）。可在此查看可用版本: https://github.com/anza-xyz/agave/releases
 
-solana --version
-```
+安装脚本会自动下载、解压并配置指定版本。
 
 ### 8. 创建验证者私钥
 ```shell

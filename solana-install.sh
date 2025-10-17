@@ -44,6 +44,42 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 echo "==> 节点安装（按教程）开始..."
+
+# =============================
+# Step 0: Verify Solana version first
+# =============================
+echo "==> 0) 验证 Solana 版本 ..."
+
+# Interactive version selection and validation
+while true; do
+  read -p "请输入 Solana 版本号 (例如 v2.3.13, v3.0.6): " SOLANA_VERSION
+
+  # Validate version format
+  if [[ ! "$SOLANA_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "[错误] 版本号格式不正确，应为 vX.Y.Z 格式 (例如 v2.3.13)"
+    read -p "是否重新输入版本号？(y/n): " retry
+    [[ "$retry" != "y" && "$retry" != "Y" ]] && exit 1
+    continue
+  fi
+
+  # Construct download URL
+  SOLANA_TARBALL_URL="https://github.com/anza-xyz/agave/releases/download/${SOLANA_VERSION}/solana-release-x86_64-unknown-linux-gnu.tar.bz2"
+
+  echo "正在验证版本 ${SOLANA_VERSION} ..."
+
+  # Try to verify the tarball exists
+  if wget --spider "$SOLANA_TARBALL_URL" 2>/dev/null; then
+    echo "版本 ${SOLANA_VERSION} 验证成功，继续安装流程..."
+    break
+  else
+    echo "[错误] 版本 ${SOLANA_VERSION} 不存在或下载地址不可用"
+    echo "请访问 https://github.com/anza-xyz/agave/releases 查看可用版本"
+    read -p "是否重新输入版本号？(y/n): " retry
+    [[ "$retry" != "y" && "$retry" != "Y" ]] && exit 1
+  fi
+done
+
+echo "==> 版本验证完成，开始系统配置..."
 apt update -y
 apt install -y wget curl bzip2 ufw || true
 
@@ -113,15 +149,54 @@ ASSIGNED_ACC=""; ASSIGNED_LED=""; ASSIGNED_SNAP=""
 [[ -n "$ASSIGNED_LED"  ]] && mount_one "$ASSIGNED_LED"  "$LEDGER"    || echo "   - ledger  使用系统盘：$LEDGER"
 [[ -n "$ASSIGNED_SNAP" ]] && mount_one "$ASSIGNED_SNAP" "$SNAPSHOT"  || echo "   - snapshot使用系统盘：$SNAPSHOT"
 
-echo "==> 4) 安装 Solana CLI v2.3.6 ..."
+echo "==> 4) 安装 Solana CLI (版本 ${SOLANA_VERSION}) ..."
+
+# Download and extract Solana (version already validated in Step 0)
+cd /tmp
+echo "下载 Solana ${SOLANA_VERSION} ..."
+wget "$SOLANA_TARBALL_URL" -O solana-release.tar.bz2
+
+if [[ ! -f solana-release.tar.bz2 ]]; then
+  echo "[错误] 下载失败"
+  exit 1
+fi
+
+echo "解压 Solana ..."
+tar jxf solana-release.tar.bz2
+
+if [[ ! -d solana-release ]]; then
+  echo "[错误] 解压失败"
+  exit 1
+fi
+
+# Install to /usr/local/solana
+SOLANA_INSTALL_DIR="/usr/local/solana"
+echo "安装 Solana 到 ${SOLANA_INSTALL_DIR} ..."
+rm -rf "$SOLANA_INSTALL_DIR"
+mv solana-release "$SOLANA_INSTALL_DIR"
+
+# Configure PATH persistently
+export PATH="$SOLANA_INSTALL_DIR/bin:$PATH"
+
+# Add to bashrc if not already present
+if ! grep -q 'solana/bin' /root/.bashrc 2>/dev/null; then
+  echo "export PATH=\"$SOLANA_INSTALL_DIR/bin:\$PATH\"" >> /root/.bashrc
+fi
+
+# Add to system-wide profile
+echo "export PATH=\"$SOLANA_INSTALL_DIR/bin:\$PATH\"" > /etc/profile.d/solana.sh
+
+# Verify installation
 if ! command -v solana >/dev/null 2>&1; then
-  sh -c "$(curl -sSfL https://release.anza.xyz/v2.3.6/install)"
+  echo "[错误] Solana 安装失败，命令不可用"
+  exit 1
 fi
-export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"
-if ! grep -q 'solana/install/active_release/bin' /root/.bashrc 2>/dev/null; then
-  echo 'export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"' >> /root/.bashrc
-fi
-echo 'export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"' >/etc/profile.d/solana.sh
+
+echo "Solana ${SOLANA_VERSION} 安装成功"
+solana --version
+
+# Cleanup
+rm -f /tmp/solana-release.tar.bz2
 
 echo "==> 5) 生成 Validator Keypair ..."
 [[ -f "$KEYPAIR" ]] || solana-keygen new -o "$KEYPAIR"

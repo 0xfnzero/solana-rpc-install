@@ -104,15 +104,9 @@ watch "grep 'cpu MHz' /proc/cpuinfo"
 
 ### 7. Download and Install Solana CLI
 
-```shell
-sh -c "$(curl -sSfL https://release.anza.xyz/v2.3.6/install)"
+**Note**: During the automated installation script, you will be prompted to enter the Solana version number (e.g., v2.3.13, v3.0.6). You can check available versions at: https://github.com/anza-xyz/agave/releases
 
-vim /root/.bashrc
-export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"
-source /root/.bashrc
-
-solana --version
-```
+The installation script will automatically download, extract, and configure the specified version.
 
 ### 8. Create Validator Keypair
 
