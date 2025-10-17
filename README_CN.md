@@ -94,7 +94,7 @@ watch "grep 'cpu MHz' /proc/cpuinfo"
 
 ### 7. 下载安装solana客户端
 
-**注意**: 自动化安装脚本运行时，会提示你输入 Solana 版本号（例如 v2.3.13、v3.0.6）。可在此查看可用版本: https://github.com/anza-xyz/agave/releases
+**注意**: 自动化安装脚本运行时，会提示你输入 Solana 版本号（例如 v3.0.5、v3.0.6）。可在此查看可用版本: https://github.com/anza-xyz/agave/releases
 
 安装脚本会自动下载、解压并配置指定版本。
 

@@ -104,7 +104,7 @@ watch "grep 'cpu MHz' /proc/cpuinfo"
 
 ### 7. Download and Install Solana CLI
 
-**Note**: During the automated installation script, you will be prompted to enter the Solana version number (e.g., v2.3.13, v3.0.6). You can check available versions at: https://github.com/anza-xyz/agave/releases
+**Note**: During the automated installation script, you will be prompted to enter the Solana version number (e.g., v3.0.5, v3.0.6). You can check available versions at: https://github.com/anza-xyz/agave/releases
 
 The installation script will automatically download, extract, and configure the specified version.
 
