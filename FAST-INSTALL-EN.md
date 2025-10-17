@@ -21,7 +21,7 @@
 
 ```bash
 # Download the system optimization script
-wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/system-optimize.sh
+wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/system-optimize.sh
 
 # Make it executable
 chmod +x system-optimize.sh
@@ -38,7 +38,7 @@ chmod +x system-optimize.sh
 
 ```bash
 # Download the Solana installation script
-wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/solana-install.sh
+wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/solana-install.sh
 
 # Make it executable
 chmod +x solana-install.sh

@@ -301,7 +301,7 @@ sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v8.0.0%2
 tar -xvjf yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 
 # Download yellowstone-config.json, GRPC port configured here: 10900
-sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/yellowstone-config.json
+sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/yellowstone-config.json
 ```
 
 ### 13. Start RPC Node Using Script
@@ -311,10 +311,10 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/
   cd /root
 
   # Download necessary scripts
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/redo_node.sh
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/restart_node.sh
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/get_health.sh
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/catchup.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/redo_node.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/restart_node.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/get_health.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/catchup.sh
 
   # Grant execute permission to scripts
   sudo chmod +x *.sh

@@ -30,13 +30,13 @@ SERVICE_NAME=${SERVICE_NAME:-sol}
 
 # Yellowstone artifacts (as vars)
 YELLOWSTONE_TARBALL_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v8.0.0%2Bsolana.2.3.6/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2"
-YELLOWSTONE_CFG_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/yellowstone-config.json"
+YELLOWSTONE_CFG_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/yellowstone-config.json"
 
 # Snapshot/ops scripts
-REDO_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/redo_node.sh"
-RESTART_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/restart_node.sh"
-GET_HEALTH_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/get_health.sh"
-CATCHUP_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.5/catchup.sh"
+REDO_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/redo_node.sh"
+RESTART_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/restart_node.sh"
+GET_HEALTH_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/get_health.sh"
+CATCHUP_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.6/catchup.sh"
 
 if [[ $EUID -ne 0 ]]; then
   echo "[ERROR] 请用 root 执行：sudo bash $0" >&2
