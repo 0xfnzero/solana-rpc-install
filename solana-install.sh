@@ -52,7 +52,7 @@ echo "==> 0) 验证 Solana 版本 ..."
 
 # Interactive version selection and validation
 while true; do
-  read -p "请输入 Solana 版本号 (例如 v3.0.5, v3.0.6): " SOLANA_VERSION
+  read -p "请输入 Solana 版本号 (例如 v2.3.11, v2.3.13): " SOLANA_VERSION
 
   # Validate version format
   if [[ ! "$SOLANA_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
