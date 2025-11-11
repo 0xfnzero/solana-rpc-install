@@ -12,8 +12,11 @@ set -euo pipefail
 # - UFW enable + allow ports
 # - Create validator.sh and systemd service
 # - Download Yellowstone gRPC geyser & config
-# - Download helper scripts (redo_node / restart_node / get_health / catchup)
+# - Copy helper scripts from project directory
 # ============================================
+
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 BASE=${BASE:-/root/sol}
 LEDGER="$BASE/ledger"
@@ -30,12 +33,6 @@ SOLANA_INSTALL_DIR="/usr/local/solana"
 # Yellowstone artifacts (as vars)
 YELLOWSTONE_TARBALL_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v8.0.0%2Bsolana.2.3.6/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2"
 YELLOWSTONE_CFG_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/yellowstone-config.json"
-
-# Snapshot/ops scripts
-REDO_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/redo_node.sh"
-RESTART_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/restart_node.sh"
-GET_HEALTH_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/get_health.sh"
-CATCHUP_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/catchup.sh"
 
 if [[ $EUID -ne 0 ]]; then
   echo "[ERROR] 请用 root 执行：sudo bash $0" >&2
@@ -393,13 +390,14 @@ wget -q "$YELLOWSTONE_TARBALL_URL" -O yellowstone-grpc-geyser.tar.bz2
 tar -xvjf yellowstone-grpc-geyser.tar.bz2
 wget -q "$YELLOWSTONE_CFG_URL" -O "$GEYSER_CFG"
 
-echo "==> 11) 下载 redo_node / restart_node / get_health / catchup ..."
-cd /root
-wget -q "$REDO_NODE_URL"    -O /root/redo_node.sh
-wget -q "$RESTART_NODE_URL" -O /root/restart_node.sh
-wget -q "$GET_HEALTH_URL"   -O /root/get_health.sh
-wget -q "$CATCHUP_URL"      -O /root/catchup.sh
-chmod +x /root/*.sh
+echo "==> 11) 复制辅助脚本到 /root ..."
+cp -f "$SCRIPT_DIR/redo_node.sh"         /root/redo_node.sh
+cp -f "$SCRIPT_DIR/restart_node.sh"      /root/restart_node.sh
+cp -f "$SCRIPT_DIR/get_health.sh"        /root/get_health.sh
+cp -f "$SCRIPT_DIR/catchup.sh"           /root/catchup.sh
+cp -f "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
+chmod +x /root/redo_node.sh /root/restart_node.sh /root/get_health.sh /root/catchup.sh /root/performance-monitor.sh
+echo "   ✓ 辅助脚本已复制到 /root"
 
 echo "==> 12) 配置开机自启 ..."
 systemctl enable "${SERVICE_NAME}"

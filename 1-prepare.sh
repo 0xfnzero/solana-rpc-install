@@ -5,6 +5,9 @@ set -euo pipefail
 # 步骤1: 挂载磁盘 + 创建目录 + 系统优化
 # ============================================
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 BASE=${BASE:-/root/sol}
 LEDGER="$BASE/ledger"
 ACCOUNTS="$BASE/accounts"
@@ -87,8 +90,8 @@ ASSIGNED_ACC=""; ASSIGNED_LED=""; ASSIGNED_SNAP=""
 
 echo ""
 echo "==> 3) 系统优化（极限网络性能）..."
-if [[ -f /root/system-optimize.sh ]]; then
-  bash /root/system-optimize.sh
+if [[ -f "$SCRIPT_DIR/system-optimize.sh" ]]; then
+  bash "$SCRIPT_DIR/system-optimize.sh"
 else
   echo "   ⚠️  找不到 system-optimize.sh，跳过系统优化"
 fi
