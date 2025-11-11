@@ -16,23 +16,15 @@
 
 ### Installation Steps
 
-**1. Clone Repository**
-
 ```bash
+# Switch to root user
+sudo su -
+
+# Clone repository to /root
+cd /root
 git clone https://github.com/0xfnzero/solana-rpc-install.git
 cd solana-rpc-install
-```
 
-**2. Switch to Root**
-
-```bash
-sudo su -
-cd /path/to/solana-rpc-install
-```
-
-**3. Run Installation Scripts**
-
-```bash
 # Step 1: Mount disks + System optimization
 bash 1-prepare.sh
 
@@ -97,23 +89,15 @@ Telegram: [https://t.me/fnzero_group](https://t.me/fnzero_group)
 
 ### 安装步骤
 
-**1. 克隆仓库**
-
 ```bash
+# 切换到 root 用户
+sudo su -
+
+# 克隆仓库到 /root 目录
+cd /root
 git clone https://github.com/0xfnzero/solana-rpc-install.git
 cd solana-rpc-install
-```
 
-**2. 切换到 root 用户**
-
-```bash
-sudo su -
-cd /path/to/solana-rpc-install
-```
-
-**3. 执行安装脚本**
-
-```bash
 # 步骤1: 挂载磁盘 + 系统优化
 bash 1-prepare.sh
 
