@@ -4,7 +4,7 @@
 # ==================================================================
 # Tier: OPTIMIZED STANDARD (For 128-160GB RAM systems)
 # Target Peak: ~105-120GB
-# RPC Threads: 8 | Cache: 1.5GB | Index Bins: 3072
+# RPC Threads: 8 | Cache: 1.5GB | Index Bins: 2048
 # Transaction History: ✅ ENABLED (full RPC features)
 # ==================================================================
 # Slightly conservative compared to TIER 2, but full functionality
@@ -18,7 +18,7 @@ TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
 
 echo "✅ TIER 1: 128GB OPTIMIZED STANDARD CONFIGURATION"
 echo "   System RAM: ${TOTAL_MEM_GB}GB | Target Peak: ~105-120GB"
-echo "   RPC Threads: 8 | Accounts Cache: 1.5GB | Index Bins: 3072"
+echo "   RPC Threads: 8 | Accounts Cache: 1.5GB | Index Bins: 2048"
 echo "   ✅ Transaction History: ENABLED"
 echo "   📊 Full RPC features with slightly conservative parameters"
 echo "=================================================================="
@@ -59,7 +59,7 @@ exec agave-validator \
  --wal-recovery-mode skip_any_corrupted_record \
  --enable-rpc-transaction-history \
  --accounts-db-cache-limit-mb 1536 \
- --accounts-shrink-ratio 0.90 --accounts-index-bins 3072 \
+ --accounts-shrink-ratio 0.90 --accounts-index-bins 2048 \
  --block-production-method central-scheduler \
  --health-check-slot-distance 150 \
  --no-voting --allow-private-addr --bind-address 0.0.0.0 \
