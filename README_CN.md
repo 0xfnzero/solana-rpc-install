@@ -89,6 +89,44 @@ bash /root/performance-monitor.sh snapshot
 /root/catchup.sh
 ```
 
+## 💾 内存管理 (针对 128GB 系统)
+
+### Swap 配置建议
+
+**追块同步阶段** (内存高峰期):
+- 内存峰值可能达到 110-120GB
+- 建议添加 32GB swap 作为安全缓冲
+
+```bash
+# 仅在系统 RAM < 160GB 时添加 swap
+sudo bash add-swap-128g.sh
+```
+
+**同步完成后** (稳定运行阶段):
+- 内存使用会降低到 85-105GB
+- 可以移除 swap 以获得最佳性能
+
+```bash
+# 检查内存使用情况
+systemctl status sol | grep Memory
+
+# 如果内存峰值 < 105GB，可以安全移除 swap
+sudo bash remove-swap.sh
+```
+
+### 判断标准
+
+| 内存峰值 | 建议操作 |
+|---------|---------|
+| **< 105GB** | ✅ 可以移除 swap，性能最优 |
+| **105-110GB** | ⚠️ 建议保留 swap 作为缓冲 |
+| **> 110GB** | 🔴 必须保留 swap，避免 OOM |
+
+**注意**: 如果移除 swap 后出现内存不足，可以随时重新添加：
+```bash
+sudo bash add-swap-128g.sh
+```
+
 ## ✨ 核心特性
 
 - ⚡ **极限网络优化**: 500MB-2GB/s 快照下载速度

@@ -89,6 +89,44 @@ bash /root/performance-monitor.sh snapshot
 /root/catchup.sh
 ```
 
+## 💾 Memory Management (For 128GB Systems)
+
+### Swap Configuration Recommendations
+
+**During Block Synchronization** (Peak Memory Usage):
+- Memory peaks may reach 110-120GB
+- Recommended to add 32GB swap as safety buffer
+
+```bash
+# Add swap only if system RAM < 160GB
+sudo bash add-swap-128g.sh
+```
+
+**After Synchronization Completes** (Steady State):
+- Memory usage drops to 85-105GB
+- Can remove swap for optimal performance
+
+```bash
+# Check current memory usage
+systemctl status sol | grep Memory
+
+# If memory peak < 105GB, safe to remove swap
+sudo bash remove-swap.sh
+```
+
+### Decision Guidelines
+
+| Memory Peak | Recommended Action |
+|-------------|-------------------|
+| **< 105GB** | ✅ Can remove swap for optimal performance |
+| **105-110GB** | ⚠️ Recommended to keep swap as buffer |
+| **> 110GB** | 🔴 Must keep swap to prevent OOM |
+
+**Note**: If memory issues occur after removing swap, you can always add it back:
+```bash
+sudo bash add-swap-128g.sh
+```
+
 ## ✨ Key Features
 
 - ⚡ **Extreme Network Optimization**: 500MB-2GB/s snapshot download speed
