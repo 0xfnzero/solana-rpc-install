@@ -22,8 +22,9 @@ Environment="RUST_BACKTRACE=1"
 # Prevent OOM killer from targeting this process
 OOMScoreAdjust=-900
 # Memory limits (adjust based on your system RAM)
-MemoryHigh=110G
-MemoryMax=120G
+# Increased to prevent ABRT crashes when reaching MemoryHigh
+MemoryHigh=118G
+MemoryMax=122G
 # CPU affinity and scheduling
 Nice=-10
 IOSchedulingClass=realtime

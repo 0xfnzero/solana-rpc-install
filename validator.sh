@@ -4,7 +4,8 @@
 # Solana RPC Node - 128GB Memory Optimized
 # ============================================
 # CRITICAL: Memory-constrained optimization
-# Target: Stay under 110GB peak usage
+# Target: Stay under 100-105GB peak usage
+# Optimizations: Fixed RPC threads, reduced cache/bins/logs
 # Focus: Essential RPC functionality only
 # ============================================
 
@@ -15,21 +16,19 @@ export SOLANA_METRICS_CONFIG=""
 
 # Detect CPU cores for optimal threading
 CPU_CORES=$(nproc)
-# Conservative RPC threads to save memory
-RPC_THREADS=$((CPU_CORES / 3))
-[[ $RPC_THREADS -lt 8 ]] && RPC_THREADS=8
-[[ $RPC_THREADS -gt 16 ]] && RPC_THREADS=16
+# Fixed RPC threads to save memory (optimized for memory efficiency)
+RPC_THREADS=8
 
 echo "Starting Solana Validator - 128GB Memory Mode"
 echo "CPU Cores: $CPU_CORES | RPC Threads: $RPC_THREADS"
 
-# Memory distribution analysis:
+# Memory distribution analysis (optimized):
 # - Accounts DB: ~60-70GB (largest consumer)
-# - Indexes: ~10-15GB (with minimal indexing)
-# - RPC cache: ~5GB
+# - Indexes: ~8-12GB (2048 bins, minimal indexing)
+# - RPC cache: ~3-4GB (8 fixed threads)
 # - Ledger/Snapshot: ~10GB
 # - System/Geyser/Buffers: ~15-20GB
-# Total: ~100-110GB peak
+# Total: ~96-106GB peak (optimized from 110GB)
 
 exec agave-validator \
  --geyser-plugin-config /root/sol/bin/yellowstone-config.json \
@@ -86,12 +85,12 @@ exec agave-validator \
  --enable-rpc-transaction-history \
  \
  `# ============ Accounts DB (CRITICAL Memory Settings) ============` \
- `# Conservative cache limit (2GB instead of 4GB)` \
- --accounts-db-cache-limit-mb 2048 \
+ `# Optimized cache limit for memory efficiency (1.5GB)` \
+ --accounts-db-cache-limit-mb 1536 \
  `# Aggressive shrink threshold to reduce DB bloat (ratio 0.90 = 90%)` \
  --accounts-shrink-ratio 0.90 \
- `# Fewer bins = less memory overhead` \
- --accounts-index-bins 4096 \
+ `# Reduced bins for lower memory overhead (2048 instead of 4096)` \
+ --accounts-index-bins 2048 \
  \
  `# ============ Performance Tuning (Memory-Aware) ============` \
  --block-production-method central-scheduler \
@@ -103,4 +102,5 @@ exec agave-validator \
  \
  `# ============ Memory & Resource Management ============` \
  --bind-address 0.0.0.0 \
- --log-messages-bytes-limit 536870912
+ `# Reduced log buffer for memory efficiency (256MB instead of 512MB)` \
+ --log-messages-bytes-limit 268435456
