@@ -73,6 +73,62 @@ reboot
 bash 3-start.sh
 ```
 
+## ⚠️ 重要：内存管理 (128GB 系统必读)
+
+> **📌 关键提示**:
+> - 如果您的系统RAM **小于160GB**，**必须**在步骤4之前手动添加swap
+> - **实际内存峰值会超过128GB**（可达 115-130GB），没有swap会导致OOM崩溃
+> - Swap **不会自动添加**，需要手动执行
+> - 这将避免追块同步时的节点崩溃
+
+### 🔧 Swap 配置步骤
+
+**第一步：添加 Swap** (在步骤3 reboot之后，步骤4启动节点之前执行)
+
+```bash
+# 重启后立即执行 (128GB系统必须执行！)
+cd /root/solana-rpc-install
+sudo bash add-swap-128g.sh
+
+# 脚本会自动检测：
+# - 仅在系统 RAM < 160GB 时添加 swap
+# - 如果已存在 swap 会跳过
+# - 添加 32GB swap，swappiness=10（最小化使用）
+# - 总可用内存: 123GB RAM + 32GB Swap = 155GB
+
+# 然后执行步骤4启动节点
+bash 3-start.sh
+```
+
+**第二步：移除 Swap** (同步完成后，内存稳定时执行)
+
+同步完成后，内存使用会降低到 85-105GB，此时可以移除 swap 以获得最佳性能：
+
+```bash
+# 检查内存使用情况
+systemctl status sol | grep Memory
+
+# 如果内存峰值 < 105GB，可以安全移除 swap
+cd /root/solana-rpc-install
+sudo bash remove-swap.sh
+```
+
+### 📊 判断标准
+
+| 内存峰值 | 建议操作 |
+|---------|---------|
+| **< 105GB** | ✅ 可以移除 swap，性能最优 |
+| **105-110GB** | ⚠️ 建议保留 swap 作为缓冲 |
+| **> 110GB** | 🔴 必须保留 swap，避免 OOM |
+
+**注意**: 如果移除 swap 后出现内存不足，可以随时重新添加：
+```bash
+cd /root/solana-rpc-install
+sudo bash add-swap-128g.sh
+```
+
+---
+
 ## 📊 监控与管理
 
 ```bash
@@ -87,52 +143,6 @@ bash /root/performance-monitor.sh snapshot
 
 # 同步进度
 /root/catchup.sh
-```
-
-## 💾 内存管理 (针对 128GB 系统)
-
-### Swap 配置建议
-
-⚠️ **重要**: Swap **不会自动添加**，需要用户根据系统RAM大小手动执行。
-
-**追块同步阶段** (内存高峰期):
-- 内存峰值可能达到 110-120GB
-- **建议手动添加** 32GB swap 作为安全缓冲
-
-```bash
-# 步骤4之后，在节点启动前执行（可选，推荐128GB系统使用）
-cd /root/solana-rpc-install
-sudo bash add-swap-128g.sh
-
-# 脚本会自动检测：
-# - 仅在系统 RAM < 160GB 时添加 swap
-# - 如果已存在 swap 会跳过
-# - 添加 32GB swap，swappiness=10（最小化使用）
-```
-
-**同步完成后** (稳定运行阶段):
-- 内存使用会降低到 85-105GB
-- 可以移除 swap 以获得最佳性能
-
-```bash
-# 检查内存使用情况
-systemctl status sol | grep Memory
-
-# 如果内存峰值 < 105GB，可以安全移除 swap
-sudo bash remove-swap.sh
-```
-
-### 判断标准
-
-| 内存峰值 | 建议操作 |
-|---------|---------|
-| **< 105GB** | ✅ 可以移除 swap，性能最优 |
-| **105-110GB** | ⚠️ 建议保留 swap 作为缓冲 |
-| **> 110GB** | 🔴 必须保留 swap，避免 OOM |
-
-**注意**: 如果移除 swap 后出现内存不足，可以随时重新添加：
-```bash
-sudo bash add-swap-128g.sh
 ```
 
 ## ✨ 核心特性

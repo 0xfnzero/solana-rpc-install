@@ -73,6 +73,62 @@ reboot
 bash 3-start.sh
 ```
 
+## ⚠️ Critical: Memory Management (Required for 128GB Systems)
+
+> **📌 Key Points**:
+> - If your system RAM is **below 160GB**, you **MUST** manually add swap before Step 4
+> - **Actual memory peaks exceed 128GB** (can reach 115-130GB), without swap the node will crash (OOM)
+> - Swap is **NOT automatically added**, requires manual execution
+> - This prevents node crashes during block synchronization
+
+### 🔧 Swap Configuration Steps
+
+**Step 1: Add Swap** (After Step 3 reboot, BEFORE Step 4 node start)
+
+```bash
+# Execute immediately after reboot (REQUIRED for 128GB systems!)
+cd /root/solana-rpc-install
+sudo bash add-swap-128g.sh
+
+# Script automatically checks:
+# - Only adds swap if system RAM < 160GB
+# - Skips if swap already exists
+# - Adds 32GB swap with swappiness=10 (minimal usage)
+# - Total available: 123GB RAM + 32GB Swap = 155GB
+
+# Then start the node with Step 4
+bash 3-start.sh
+```
+
+**Step 2: Remove Swap** (After sync completes and memory stabilizes)
+
+After synchronization completes, memory usage drops to 85-105GB, you can remove swap for optimal performance:
+
+```bash
+# Check current memory usage
+systemctl status sol | grep Memory
+
+# If memory peak < 105GB, safe to remove swap
+cd /root/solana-rpc-install
+sudo bash remove-swap.sh
+```
+
+### 📊 Decision Guidelines
+
+| Memory Peak | Recommended Action |
+|-------------|-------------------|
+| **< 105GB** | ✅ Can remove swap for optimal performance |
+| **105-110GB** | ⚠️ Recommended to keep swap as buffer |
+| **> 110GB** | 🔴 Must keep swap to prevent OOM |
+
+**Note**: If memory issues occur after removing swap, you can always add it back:
+```bash
+cd /root/solana-rpc-install
+sudo bash add-swap-128g.sh
+```
+
+---
+
 ## 📊 Monitoring & Management
 
 ```bash
@@ -87,52 +143,6 @@ bash /root/performance-monitor.sh snapshot
 
 # Sync progress
 /root/catchup.sh
-```
-
-## 💾 Memory Management (For 128GB Systems)
-
-### Swap Configuration Recommendations
-
-⚠️ **Important**: Swap is **NOT automatically added**. Users must manually execute based on system RAM.
-
-**During Block Synchronization** (Peak Memory Usage):
-- Memory peaks may reach 110-120GB
-- **Manually add** 32GB swap as safety buffer (recommended)
-
-```bash
-# After Step 4, before node starts (Optional, recommended for 128GB systems)
-cd /root/solana-rpc-install
-sudo bash add-swap-128g.sh
-
-# Script automatically checks:
-# - Only adds swap if system RAM < 160GB
-# - Skips if swap already exists
-# - Adds 32GB swap with swappiness=10 (minimal usage)
-```
-
-**After Synchronization Completes** (Steady State):
-- Memory usage drops to 85-105GB
-- Can remove swap for optimal performance
-
-```bash
-# Check current memory usage
-systemctl status sol | grep Memory
-
-# If memory peak < 105GB, safe to remove swap
-sudo bash remove-swap.sh
-```
-
-### Decision Guidelines
-
-| Memory Peak | Recommended Action |
-|-------------|-------------------|
-| **< 105GB** | ✅ Can remove swap for optimal performance |
-| **105-110GB** | ⚠️ Recommended to keep swap as buffer |
-| **> 110GB** | 🔴 Must keep swap to prevent OOM |
-
-**Note**: If memory issues occur after removing swap, you can always add it back:
-```bash
-sudo bash add-swap-128g.sh
 ```
 
 ## ✨ Key Features
