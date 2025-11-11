@@ -31,7 +31,7 @@ SERVICE_NAME=${SERVICE_NAME:-sol}
 SOLANA_INSTALL_DIR="/usr/local/solana"
 
 # Yellowstone artifacts (as vars)
-YELLOWSTONE_TARBALL_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v8.0.0%2Bsolana.2.3.6/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2"
+YELLOWSTONE_TARBALL_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v10.0.1%2Bsolana.3.0.6/yellowstone-grpc-geyser-release24-x86_64-unknown-linux-gnu.tar.bz2"
 
 if [[ $EUID -ne 0 ]]; then
   echo "[ERROR] 请用 root 执行：sudo bash $0" >&2
