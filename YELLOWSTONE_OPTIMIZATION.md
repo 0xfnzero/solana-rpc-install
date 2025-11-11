@@ -18,14 +18,16 @@
 ```json
 "tokio": {
   "worker_threads": 16,
-  "affinity": "0-7,32-39"
+  "affinity": null
 }
 ```
 
 **优化效果**：
 - **worker_threads: 16** - 充分利用多核 CPU，提高并发处理能力
-- **affinity: "0-7,32-39"** - CPU 亲和性绑定到物理核心（避免超线程，降低上下文切换）
+- **affinity: null** - 禁用 CPU 亲和性，让系统调度器自动优化（更通用，避免配置错误）
 - **延迟降低**: 10-30% （多线程并行处理）
+
+**注意**：affinity 需要根据服务器 CPU 配置设置。如果配置不当会导致启动失败。推荐保持 `null` 让系统自动调度。
 
 ### 2. HTTP/2 性能优化 🚀
 
@@ -199,28 +201,39 @@ curl http://localhost:8999/metrics | grep 'yellowstone.*connections'
 
 ## CPU Affinity 调整指南
 
-当前配置假设 AMD Ryzen 9 9950X (32 核 64 线程) 架构：
-- **物理核心 0-7**: CCX0 (L3 Cache 共享)
-- **物理核心 32-39**: 对应的物理核心编号
+**⚠️ 重要提示**：默认配置使用 `"affinity": null`（推荐），让系统调度器自动优化。只有在需要特殊优化时才手动配置。
 
-### 不同 CPU 的 affinity 配置
+### 查看 CPU 配置
 
-**32 核 CPU (如 Ryzen 9 9950X)**：
-```json
-"affinity": "0-7,32-39"
+先检查服务器的 CPU 逻辑核心数量：
+```bash
+lscpu | grep "CPU(s)"
+# 输出示例：CPU(s): 32
+# 表示逻辑核心编号范围是 0-31
 ```
 
-**64 核 CPU (如 AMD EPYC)**：
+### 不同 CPU 的 affinity 配置示例
+
+**AMD Ryzen 9 9950X (16 核 32 线程)**：
 ```json
-"affinity": "0-15,64-79"
+"affinity": null  // 推荐：让系统自动调度
+// 或手动配置（高级）：
+"affinity": "0-15"  // 使用前 16 个逻辑核心
 ```
 
-**16 核 CPU (如 Ryzen 9 5950X)**：
+**AMD EPYC (32 核 64 线程)**：
 ```json
-"affinity": "0-3,16-19"
+"affinity": null  // 推荐
+// 或：
+"affinity": "0-31"  // 使用前 32 个逻辑核心
 ```
 
-**查看 CPU 拓扑**：
+**配置原则**：
+- **核心范围必须在 [0, CPU总数-1]** 之内，否则启动失败
+- **推荐配置**: `null` - 让系统自动优化
+- **手动配置**: 确保 affinity 范围不超过实际 CPU 核心数
+
+**查看详细 CPU 拓扑**：
 ```bash
 lscpu -e
 # 或
@@ -235,8 +248,8 @@ cat /proc/cpuinfo | grep -E "processor|physical id|core id"
 
 ```json
 "tokio": {
-  "worker_threads": 32,
-  "affinity": "0-31"
+  "worker_threads": 24,
+  "affinity": null
 },
 "grpc": {
   "channel_capacity": "1_000_000",
@@ -245,7 +258,10 @@ cat /proc/cpuinfo | grep -E "processor|physical id|core id"
 }
 ```
 
-**注意**：这会占用更多 CPU 和内存资源，需要独立服务器运行。
+**注意**：
+- 这会占用更多 CPU 和内存资源，需要独立服务器运行
+- worker_threads 建议设置为 CPU 逻辑核心数的 75%-100%
+- 保持 affinity 为 null，让系统调度器优化
 
 ### 内存优化配置（128GB 系统）
 

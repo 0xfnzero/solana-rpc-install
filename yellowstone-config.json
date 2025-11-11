@@ -5,7 +5,7 @@
   },
   "tokio": {
     "worker_threads": 16,
-    "affinity": "0-7,32-39"
+    "affinity": null
   },
   "grpc": {
     "address": "0.0.0.0:10900",
