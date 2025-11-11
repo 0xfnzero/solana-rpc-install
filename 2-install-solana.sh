@@ -230,57 +230,10 @@ else
 fi
 
 
-echo "==> 9) 写入 systemd 服务 /etc/systemd/system/${SERVICE_NAME}.service ..."
-cat > /etc/systemd/system/${SERVICE_NAME}.service <<EOF
-[Unit]
-Description=Solana Validator
-After=network.target network-online.target
-Wants=network-online.target
-StartLimitIntervalSec=300
-StartLimitBurst=5
-
-[Service]
-Type=simple
-Restart=on-failure
-RestartSec=30
-User=root
-LimitNOFILE=1000000
-LimitNPROC=1000000
-LimitMEMLOCK=infinity
-LimitSTACK=infinity
-LimitCORE=infinity
-LogRateLimitIntervalSec=0
-Environment="PATH=${SOLANA_INSTALL_DIR}/bin:/usr/bin:/bin"
-Environment="RUST_LOG=warn"
-Environment="RUST_BACKTRACE=1"
-# Prevent OOM killer from targeting this process
-OOMScoreAdjust=-900
-# Memory limits (adjust based on your system RAM)
-MemoryHigh=110G
-MemoryMax=120G
-# CPU affinity and scheduling
-Nice=-10
-IOSchedulingClass=realtime
-IOSchedulingPriority=0
-# Watchdog for health monitoring
-WatchdogSec=120
-# Graceful shutdown timeout
-TimeoutStopSec=300
-KillMode=mixed
-KillSignal=SIGINT
-# Working directory
-WorkingDirectory=/root/sol
-# Startup command
-ExecStart=$BIN/validator.sh
-# Pre-start validation
-ExecStartPre=/bin/bash -c 'test -f /root/sol/bin/validator-keypair.json'
-ExecStartPre=/bin/bash -c 'test -d /root/sol/ledger'
-ExecStartPre=/bin/bash -c 'test -d /root/sol/accounts'
-
-[Install]
-WantedBy=multi-user.target
-EOF
+echo "==> 9) 复制 systemd 服务配置..."
+cp -f "$SCRIPT_DIR/sol.service" /etc/systemd/system/${SERVICE_NAME}.service
 systemctl daemon-reload
+echo "   ✓ systemd 服务配置已更新 (MemoryHigh=120G, WatchdogSec 已禁用)"
 
 echo "==> 10) 下载 Yellowstone gRPC geyser 与配置 ..."
 cd "$BIN"
@@ -294,8 +247,10 @@ cp -f "$SCRIPT_DIR/restart_node.sh"      /root/restart_node.sh
 cp -f "$SCRIPT_DIR/get_health.sh"        /root/get_health.sh
 cp -f "$SCRIPT_DIR/catchup.sh"           /root/catchup.sh
 cp -f "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
-chmod +x /root/redo_node.sh /root/restart_node.sh /root/get_health.sh /root/catchup.sh /root/performance-monitor.sh
-echo "   ✓ 辅助脚本已复制到 /root"
+cp -f "$SCRIPT_DIR/add-swap-128g.sh"     /root/add-swap-128g.sh
+cp -f "$SCRIPT_DIR/remove-swap.sh"       /root/remove-swap.sh
+chmod +x /root/redo_node.sh /root/restart_node.sh /root/get_health.sh /root/catchup.sh /root/performance-monitor.sh /root/add-swap-128g.sh /root/remove-swap.sh
+echo "   ✓ 辅助脚本已复制到 /root (包含 swap 管理脚本)"
 
 echo "==> 12) 配置开机自启 ..."
 systemctl enable "${SERVICE_NAME}"
