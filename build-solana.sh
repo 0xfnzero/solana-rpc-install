@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 
 # 默认配置变量
 DEFAULT_VERSION="v3.0.10"
-BASE_DIR="/opt/solana"              # 安装基础目录
+BASE_DIR="/usr/local/solana"              # 安装基础目录
 SOLANA_VERSION=""
 DOWNLOAD_URL=""
 INSTALL_DIR="${BASE_DIR}"           # Solana 安装目录

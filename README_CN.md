@@ -271,7 +271,7 @@ RestartSec=1
 User=root
 LimitNOFILE=1000000
 LogRateLimitIntervalSec=0
-Environment="PATH=/bin:/usr/bin:/usr/local/solana/bin"
+Environment="PATH=/usr/local/solana/bin:/usr/bin:/bin"
 ExecStart=/root/sol/bin/validator.sh
 
 [Install]
