@@ -6,7 +6,7 @@ set -e  # 脚本有报错就终止
 ufw enable
 
 sudo ufw allow 22
-sudo ufw allow 8000:8020/tcp
-sudo ufw allow 8000:8020/udp
+sudo ufw allow 8000:8025/tcp
+sudo ufw allow 8000:8025/udp
 sudo ufw allow 8899 # http 端口
 sudo ufw allow 8900 # websocket 端口
