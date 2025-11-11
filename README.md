@@ -212,8 +212,8 @@ ulimit -n 1000000
 sudo ufw enable
 
 sudo ufw allow 22
-sudo ufw allow 8000:8020/tcp
-sudo ufw allow 8000:8020/udp
+sudo ufw allow 8000:8025/tcp
+sudo ufw allow 8000:8025/udp
 sudo ufw allow 8899 # HTTP port
 sudo ufw allow 8900 # WebSocket port
 sudo ufw allow 10900 # GRPC port
@@ -254,7 +254,7 @@ RUST_LOG=warn agave-validator \
  --full-rpc-api \
  --private-rpc \
  --no-voting \
- --dynamic-port-range 8000-8020 \
+ --dynamic-port-range 8000-8025 \
  --wal-recovery-mode skip_any_corrupted_record \
  --limit-ledger-size 60000000 \
  --no-port-check \

@@ -307,7 +307,7 @@ RUST_LOG=warn agave-validator \
  --full-rpc-api \
  --private-rpc \
  --no-voting \
- --dynamic-port-range 8000-8020 \
+ --dynamic-port-range 8000-8025 \
  --wal-recovery-mode skip_any_corrupted_record \
  --limit-ledger-size 60000000 \
  --no-port-check \

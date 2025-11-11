@@ -122,7 +122,7 @@ The following ports will be automatically configured:
 - **8899**: HTTP RPC port
 - **8900**: WebSocket port  
 - **10900**: gRPC port
-- **8000-8020**: Dynamic ports for validator communication
+- **8000-8025**: Dynamic ports for validator communication
 
 ## Troubleshooting
 
