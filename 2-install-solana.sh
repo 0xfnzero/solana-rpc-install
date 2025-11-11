@@ -11,7 +11,7 @@ set -euo pipefail
 # - Create validator keypair
 # - UFW enable + allow ports
 # - Create validator.sh and systemd service
-# - Download Yellowstone gRPC geyser & config
+# - Download Yellowstone gRPC geyser & copy optimized config
 # - Copy helper scripts from project directory
 # ============================================
 
@@ -32,7 +32,6 @@ SOLANA_INSTALL_DIR="/usr/local/solana"
 
 # Yellowstone artifacts (as vars)
 YELLOWSTONE_TARBALL_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v8.0.0%2Bsolana.2.3.6/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2"
-YELLOWSTONE_CFG_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/yellowstone-config.json"
 
 if [[ $EUID -ne 0 ]]; then
   echo "[ERROR] 请用 root 执行：sudo bash $0" >&2
@@ -239,7 +238,9 @@ echo "==> 10) 下载 Yellowstone gRPC geyser 与配置 ..."
 cd "$BIN"
 wget -q "$YELLOWSTONE_TARBALL_URL" -O yellowstone-grpc-geyser.tar.bz2
 tar -xvjf yellowstone-grpc-geyser.tar.bz2
-wget -q "$YELLOWSTONE_CFG_URL" -O "$GEYSER_CFG"
+echo "   - 复制优化后的 yellowstone-config.json ..."
+cp -f "$SCRIPT_DIR/yellowstone-config.json" "$GEYSER_CFG"
+echo "   ✓ 已应用低延迟优化配置 (Tokio 16 threads, HTTP/2 优化, zstd 压缩)"
 
 echo "==> 11) 复制辅助脚本到 /root ..."
 cp -f "$SCRIPT_DIR/redo_node.sh"         /root/redo_node.sh
