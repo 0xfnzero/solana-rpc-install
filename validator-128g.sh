@@ -2,12 +2,12 @@
 # ==================================================================
 # Solana RPC Validator - 128GB Memory Configuration
 # ==================================================================
-# Tier: EXTREME OPTIMIZATION (Low Memory Mode)
-# Target Peak: ~98-105GB
-# RPC Threads: 6 | Cache: 1GB | Index Bins: 2048
-# Transaction History: ❌ DISABLED (saves 5-8GB)
+# Tier: OPTIMIZED STANDARD (For 128-160GB RAM systems)
+# Target Peak: ~105-120GB
+# RPC Threads: 8 | Cache: 1.5GB | Index Bins: 3072
+# Transaction History: ✅ ENABLED (full RPC features)
 # ==================================================================
-# WARNING: getTransaction() and transaction history APIs unavailable
+# Slightly conservative compared to TIER 2, but full functionality
 # ==================================================================
 
 export RUST_LOG=warn
@@ -16,11 +16,11 @@ export SOLANA_METRICS_CONFIG=""
 
 TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
 
-echo "⚠️  TIER 1: 128GB EXTREME OPTIMIZATION MODE"
-echo "   System RAM: ${TOTAL_MEM_GB}GB | Target Peak: ~98-105GB"
-echo "   RPC Threads: 6 | Accounts Cache: 1GB | Index Bins: 2048"
-echo "   ❌ Transaction History: DISABLED"
-echo "   ⚠️  getTransaction(), getSignaturesForAddress() NOT available"
+echo "✅ TIER 1: 128GB OPTIMIZED STANDARD CONFIGURATION"
+echo "   System RAM: ${TOTAL_MEM_GB}GB | Target Peak: ~105-120GB"
+echo "   RPC Threads: 8 | Accounts Cache: 1.5GB | Index Bins: 3072"
+echo "   ✅ Transaction History: ENABLED"
+echo "   📊 Full RPC features with slightly conservative parameters"
 echo "=================================================================="
 
 exec agave-validator \
@@ -44,22 +44,23 @@ exec agave-validator \
  --only-known-rpc --no-port-check \
  --dynamic-port-range 8000-8025 --gossip-port 8001 \
  --rpc-bind-address 0.0.0.0 --rpc-port 8899 \
- --full-rpc-api --private-rpc --rpc-threads 6 \
+ --full-rpc-api --private-rpc --rpc-threads 8 \
  --rpc-max-multiple-accounts 50 \
  --rpc-max-request-body-size 20971520 \
  --rpc-bigtable-timeout 180 --rpc-send-retry-ms 1000 \
  --account-index program-id \
  --account-index-include-key AddressLookupTab1e1111111111111111111111111 \
  --no-incremental-snapshots \
- --maximum-full-snapshots-to-retain 1 \
- --maximum-incremental-snapshots-to-retain 1 \
+ --maximum-full-snapshots-to-retain 2 \
+ --maximum-incremental-snapshots-to-retain 2 \
  --minimal-snapshot-download-speed 10485760 \
  --use-snapshot-archives-at-startup when-newest \
  --limit-ledger-size 50000000 \
  --wal-recovery-mode skip_any_corrupted_record \
- --accounts-db-cache-limit-mb 1024 \
- --accounts-shrink-ratio 0.90 --accounts-index-bins 2048 \
+ --enable-rpc-transaction-history \
+ --accounts-db-cache-limit-mb 1536 \
+ --accounts-shrink-ratio 0.90 --accounts-index-bins 3072 \
  --block-production-method central-scheduler \
  --health-check-slot-distance 150 \
  --no-voting --allow-private-addr --bind-address 0.0.0.0 \
- --log-messages-bytes-limit 134217728
+ --log-messages-bytes-limit 201326592
