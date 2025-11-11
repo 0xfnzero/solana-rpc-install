@@ -69,38 +69,39 @@ bash 2-install-solana.sh
 # Step 3: Reboot system
 reboot
 
-# Step 4: After reboot, download snapshot and start node
+# ⚠️ Step 3.5: After reboot, if system RAM < 160GB, MUST add swap first
+cd /root/solana-rpc-install
+sudo bash add-swap-128g.sh
+# (Only adds if RAM < 160GB, otherwise auto-skips)
+
+# Step 4: Download snapshot and start node
 bash 3-start.sh
 ```
 
-## ⚠️ Critical: Memory Management (Required for 128GB Systems)
+## ⚠️ Critical: Memory Management Details (Required for 128GB Systems)
 
-> **📌 Key Points**:
-> - If your system RAM is **below 160GB**, you **MUST** manually add swap before Step 4
-> - **Actual memory peaks exceed 128GB** (can reach 115-130GB), without swap the node will crash (OOM)
-> - Swap is **NOT automatically added**, requires manual execution
-> - This prevents node crashes during block synchronization
+> **📌 Why Swap is Needed?**
+> - **Actual memory peaks exceed 128GB** (can reach 115-130GB)
+> - Without swap, node will crash with OOM and cannot run
+> - Swap is NOT automatic, must execute in Step 3.5 manually
+> - With swap: Total available = 123GB RAM + 32GB Swap = 155GB
 
-### 🔧 Swap Configuration Steps
+### 🔧 Swap Management Details
 
-**Step 1: Add Swap** (After Step 3 reboot, BEFORE Step 4 node start)
+**Add Swap** (Included in Quick Start Step 3.5)
 
 ```bash
-# Execute immediately after reboot (REQUIRED for 128GB systems!)
+# Execute immediately after Step 3 reboot
 cd /root/solana-rpc-install
 sudo bash add-swap-128g.sh
 
 # Script automatically checks:
-# - Only adds swap if system RAM < 160GB
-# - Skips if swap already exists
-# - Adds 32GB swap with swappiness=10 (minimal usage)
-# - Total available: 123GB RAM + 32GB Swap = 155GB
-
-# Then start the node with Step 4
-bash 3-start.sh
+# ✓ Only adds swap if system RAM < 160GB
+# ✓ Skips if swap already exists
+# ✓ Adds 32GB swap with swappiness=10 (minimal usage)
 ```
 
-**Step 2: Remove Swap** (After sync completes and memory stabilizes)
+**Remove Swap** (Optional after sync completes)
 
 After synchronization completes, memory usage drops to 85-105GB, you can remove swap for optimal performance:
 

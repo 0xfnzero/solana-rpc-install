@@ -69,38 +69,39 @@ bash 2-install-solana.sh
 # 步骤3: 重启系统
 reboot
 
-# 步骤4: 重启后下载快照并启动节点
+# ⚠️ 步骤3.5: 重启后，如果系统RAM < 160GB，必须先添加swap
+cd /root/solana-rpc-install
+sudo bash add-swap-128g.sh
+# （仅在RAM < 160GB时添加，否则自动跳过）
+
+# 步骤4: 下载快照并启动节点
 bash 3-start.sh
 ```
 
-## ⚠️ 重要：内存管理 (128GB 系统必读)
+## ⚠️ 重要：内存管理详解 (128GB 系统必读)
 
-> **📌 关键提示**:
-> - 如果您的系统RAM **小于160GB**，**必须**在步骤4之前手动添加swap
-> - **实际内存峰值会超过128GB**（可达 115-130GB），没有swap会导致OOM崩溃
-> - Swap **不会自动添加**，需要手动执行
-> - 这将避免追块同步时的节点崩溃
+> **📌 为什么需要 Swap？**
+> - **实际内存峰值会超过128GB**（可达 115-130GB）
+> - 没有swap会导致OOM崩溃，节点无法运行
+> - Swap不会自动添加，需要在步骤3.5手动执行
+> - 添加swap后总可用内存: 123GB RAM + 32GB Swap = 155GB
 
-### 🔧 Swap 配置步骤
+### 🔧 Swap 管理详细说明
 
-**第一步：添加 Swap** (在步骤3 reboot之后，步骤4启动节点之前执行)
+**添加 Swap** (已包含在快速开始的步骤3.5中)
 
 ```bash
-# 重启后立即执行 (128GB系统必须执行！)
+# 在步骤3 reboot之后立即执行
 cd /root/solana-rpc-install
 sudo bash add-swap-128g.sh
 
 # 脚本会自动检测：
-# - 仅在系统 RAM < 160GB 时添加 swap
-# - 如果已存在 swap 会跳过
-# - 添加 32GB swap，swappiness=10（最小化使用）
-# - 总可用内存: 123GB RAM + 32GB Swap = 155GB
-
-# 然后执行步骤4启动节点
-bash 3-start.sh
+# ✓ 仅在系统 RAM < 160GB 时添加 swap
+# ✓ 如果已存在 swap 会跳过
+# ✓ 添加 32GB swap，swappiness=10（最小化使用）
 ```
 
-**第二步：移除 Swap** (同步完成后，内存稳定时执行)
+**移除 Swap** (同步完成后，可选操作)
 
 同步完成后，内存使用会降低到 85-105GB，此时可以移除 swap 以获得最佳性能：
 
