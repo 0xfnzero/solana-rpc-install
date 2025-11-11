@@ -1,73 +1,91 @@
 {
   "libpath": "/root/sol/bin/yellowstone-grpc-geyser-release/lib/libyellowstone_grpc_geyser.so",
   "log": {
-      "level": "info"
+    "level": "warn"
+  },
+  "tokio": {
+    "worker_threads": 16,
+    "affinity": "0-7,32-39"
   },
   "grpc": {
-      "address": "0.0.0.0:10900",
-      "compression": {
-          "accept": ["gzip", "zstd"],
-          "send": ["gzip", "zstd"]
+    "address": "0.0.0.0:10900",
+    "compression": {
+      "accept": ["zstd"],
+      "send": ["zstd"]
+    },
+    "server_http2_adaptive_window": true,
+    "server_http2_keepalive_interval": "10s",
+    "server_http2_keepalive_timeout": "20s",
+    "server_initial_connection_window_size": "8_388_608",
+    "server_initial_stream_window_size": "4_194_304",
+    "max_decoding_message_size": "16_777_216",
+    "snapshot_plugin_channel_capacity": null,
+    "snapshot_client_channel_capacity": "100_000_000",
+    "channel_capacity": "500_000",
+    "unary_concurrency_limit": 2000,
+    "unary_disabled": false,
+    "x_token": null,
+    "filter_name_size_limit": 256,
+    "filter_names_size_limit": 8192,
+    "filter_names_cleanup_interval": "5s",
+    "filter_limits": {
+      "accounts": {
+        "max": 10,
+        "any": false,
+        "account_max": 50,
+        "account_reject": [
+          "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        ],
+        "owner_max": 20,
+        "owner_reject": [
+          "11111111111111111111111111111111"
+        ],
+        "data_slice_max": 5
       },
-"max_decoding_message_size": "8_388_608",
-      "snapshot_plugin_channel_capacity": null,
-      "snapshot_client_channel_capacity": "50_000_000",
-      "channel_capacity": "200_000",
-      "unary_concurrency_limit": 1000,
-      "unary_disabled": false,
-      "filters": {
-          "accounts": {
-              "max": 100,
-              "any": false,
-              "account_max": 100,
-              "account_reject": [
-                  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-              ],
-              "owner_max": 10,
-              "owner_reject": [
-                  "11111111111111111111111111111111"
-              ]
-          },
-          "slots": {
-              "max": 1
-          },
-          "transactions": {
-              "max": 100,
-              "any": false,
-              "account_include_max": 100,
-              "account_include_reject": [
-                  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-              ],
-              "account_exclude_max": 100,
-              "account_required_max": 100
-          },
-          "transactions_status": {
-              "max": 100,
-              "any": false,
-              "account_include_max": 100,
-              "account_include_reject": [
-                  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-              ],
-              "account_exclude_max": 100,
-              "account_required_max": 100
-          },
-          "blocks": {
-              "max": 1,
-              "account_include_max": 100,
-              "account_include_any": false,
-              "account_include_reject": [
-                  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-              ],
-              "include_transactions": true,
-              "include_accounts": false,
-              "include_entries": false
-          },
-          "blocks_meta": {
-              "max": 1
-          },
-          "entries": {
-              "max": 1
-          }
+      "slots": {
+        "max": 5
+      },
+      "transactions": {
+        "max": 10,
+        "any": false,
+        "account_include_max": 50,
+        "account_include_reject": [
+          "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        ],
+        "account_exclude_max": 50,
+        "account_required_max": 50
+      },
+      "transactions_status": {
+        "max": 10,
+        "any": false,
+        "account_include_max": 50,
+        "account_include_reject": [
+          "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        ],
+        "account_exclude_max": 50,
+        "account_required_max": 50
+      },
+      "blocks": {
+        "max": 5,
+        "account_include_max": 50,
+        "account_include_any": false,
+        "account_include_reject": [
+          "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        ],
+        "include_transactions": true,
+        "include_accounts": false,
+        "include_entries": false
+      },
+      "blocks_meta": {
+        "max": 5
+      },
+      "entries": {
+        "max": 5
       }
-  }
+    }
+  },
+  "prometheus": {
+    "address": "0.0.0.0:8999"
+  },
+  "debug_clients_http": true
 }
