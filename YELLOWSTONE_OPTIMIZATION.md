@@ -107,24 +107,24 @@
 
 ### 6. 过滤器限制优化 🎯
 
-**修改前**（过于宽松）：
+**修改前**（官方默认，过于严格）：
 ```json
-"accounts": { "max": 100, "account_max": 100 },
-"transactions": { "max": 100 }
+"accounts": { "max": 1, "account_max": 10 },
+"transactions": { "max": 1 }
 ```
 
-**修改后**（平衡性能和功能）：
+**修改后**（适合生产环境）：
 ```json
-"accounts": { "max": 10, "account_max": 50 },
-"slots": { "max": 5 },
-"transactions": { "max": 10 },
-"blocks": { "max": 5 }
+"accounts": { "max": 100, "account_max": 100 },
+"slots": { "max": 100 },
+"transactions": { "max": 100 },
+"blocks": { "max": 100 }
 ```
 
 **优化效果**：
-- 限制每个客户端的订阅数量，防止资源滥用
-- 减少不必要的数据传输，降低延迟
-- **延迟降低**: 5-10% （减少数据过滤开销）
+- 支持更多并发客户端和订阅需求
+- 平衡性能和功能性，适合生产环境
+- 保留黑名单机制防止资源滥用（Token 程序账号除外）
 
 ### 7. 监控和调试 📊
 
