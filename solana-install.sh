@@ -2,13 +2,15 @@
 set -euo pipefail
 
 # =============================
-# Solana Install (exact tutorial + auto mount priority: accounts -> ledger -> snapshot)
+# Solana Install (从源码构建版本)
+# - 从源码编译安装 Solana (不再使用预编译二进制)
 # - Install OpenSSL 1.1
+# - Install Rust toolchain
 # - Create /root/sol/* directories
 # - Auto-detect data disks (exclude system disk), prefer largest candidates
 # - Mount priority: /root/sol/accounts -> /root/sol/ledger -> /root/sol/snapshot
 #   * fstab uses defaults per tutorial (no extra options)
-# - Install Solana CLI v2.3.6 & PATH
+# - Build & Install Solana CLI from source
 # - Create validator keypair
 # - UFW enable + allow ports
 # - Create validator.sh and systemd service
@@ -27,23 +29,24 @@ KEYPAIR="$BIN/validator-keypair.json"
 LOGFILE=/root/solana-rpc.log
 GEYSER_CFG="$BIN/yellowstone-config.json"
 SERVICE_NAME=${SERVICE_NAME:-sol}
+SOLANA_INSTALL_DIR="/usr/local/solana"
 
 # Yellowstone artifacts (as vars)
 YELLOWSTONE_TARBALL_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v8.0.0%2Bsolana.2.3.6/yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2"
-YELLOWSTONE_CFG_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/yellowstone-config.json"
+YELLOWSTONE_CFG_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/yellowstone-config.json"
 
 # Snapshot/ops scripts
-REDO_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/redo_node.sh"
-RESTART_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/restart_node.sh"
-GET_HEALTH_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/get_health.sh"
-CATCHUP_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/catchup.sh"
+REDO_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/redo_node.sh"
+RESTART_NODE_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/restart_node.sh"
+GET_HEALTH_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/get_health.sh"
+CATCHUP_URL="https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/catchup.sh"
 
 if [[ $EUID -ne 0 ]]; then
   echo "[ERROR] 请用 root 执行：sudo bash $0" >&2
   exit 1
 fi
 
-echo "==> 节点安装（按教程）开始..."
+echo "==> 节点安装（从源码构建）开始..."
 
 # =============================
 # Step 0: Verify Solana version first
@@ -52,27 +55,27 @@ echo "==> 0) 验证 Solana 版本 ..."
 
 # Interactive version selection and validation
 while true; do
-  read -p "请输入 Solana 版本号 (例如 v2.3.11, v2.3.13): " SOLANA_VERSION
+  read -p "请输入 Solana 版本号 (例如 v3.0.10, v3.0.9): " SOLANA_VERSION
 
   # Validate version format
   if [[ ! "$SOLANA_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "[错误] 版本号格式不正确，应为 vX.Y.Z 格式 (例如 v2.3.13)"
+    echo "[错误] 版本号格式不正确，应为 vX.Y.Z 格式 (例如 v3.0.10)"
     read -p "是否重新输入版本号？(y/n): " retry
     [[ "$retry" != "y" && "$retry" != "Y" ]] && exit 1
     continue
   fi
 
-  # Construct download URL
-  SOLANA_TARBALL_URL="https://github.com/anza-xyz/agave/releases/download/${SOLANA_VERSION}/solana-release-x86_64-unknown-linux-gnu.tar.bz2"
+  # Construct source download URL (for building from source)
+  SOLANA_SOURCE_URL="https://github.com/anza-xyz/agave/archive/refs/tags/${SOLANA_VERSION}.tar.gz"
 
-  echo "正在验证版本 ${SOLANA_VERSION} ..."
+  echo "正在验证版本 ${SOLANA_VERSION} 源码..."
 
-  # Try to verify the tarball exists
-  if wget --spider "$SOLANA_TARBALL_URL" 2>/dev/null; then
-    echo "版本 ${SOLANA_VERSION} 验证成功，继续安装流程..."
+  # Try to verify the source tarball exists
+  if wget --spider "$SOLANA_SOURCE_URL" 2>/dev/null; then
+    echo "版本 ${SOLANA_VERSION} 源码验证成功，继续安装流程..."
     break
   else
-    echo "[错误] 版本 ${SOLANA_VERSION} 不存在或下载地址不可用"
+    echo "[错误] 版本 ${SOLANA_VERSION} 源码不存在或下载地址不可用"
     echo "请访问 https://github.com/anza-xyz/agave/releases 查看可用版本"
     read -p "是否重新输入版本号？(y/n): " retry
     [[ "$retry" != "y" && "$retry" != "Y" ]] && exit 1
@@ -81,17 +84,40 @@ done
 
 echo "==> 版本验证完成，开始系统配置..."
 apt update -y
-apt install -y wget curl bzip2 ufw || true
+apt install -y wget curl bzip2 ufw build-essential pkg-config libssl-dev libudev-dev \
+               zlib1g-dev llvm clang cmake make libprotobuf-dev protobuf-compiler \
+               libclang-dev git || true
 
 echo "==> 1) 安装 OpenSSL 1.1 ..."
 wget -q http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb -O /tmp/libssl1.1.deb
 dpkg -i /tmp/libssl1.1.deb || true
 
-echo "==> 2) 创建目录 ..."
+echo "==> 2) 安装 Rust 工具链 ..."
+if ! command -v rustc &> /dev/null; then
+  echo "   - 未检测到 Rust，开始安装..."
+  curl https://sh.rustup.rs -sSf | sh -s -- -y
+  source "$HOME/.cargo/env"
+  echo "   - Rust 安装完成"
+else
+  echo "   - Rust 已安装: $(rustc --version)"
+fi
+
+# Ensure Rust environment is loaded
+if [[ -f "$HOME/.cargo/env" ]]; then
+  source "$HOME/.cargo/env"
+fi
+
+# Update Rust to latest stable
+echo "   - 更新 Rust 到最新稳定版..."
+rustup update stable
+rustup default stable
+rustup component add rustfmt
+
+echo "==> 3) 创建目录 ..."
 mkdir -p "$LEDGER" "$ACCOUNTS" "$SNAPSHOT" "$BIN" "$TOOLS"
 
 # ---------- 自动判盘并挂载（优先：accounts -> ledger -> snapshot） ----------
-echo "==> 3) 自动检测磁盘并安全挂载（优先 accounts）..."
+echo "==> 4) 自动检测磁盘并安全挂载（优先 accounts）..."
 ROOT_SRC=$(findmnt -no SOURCE / || true)
 ROOT_DISK=""
 if [[ -n "${ROOT_SRC:-}" ]]; then
@@ -149,31 +175,75 @@ ASSIGNED_ACC=""; ASSIGNED_LED=""; ASSIGNED_SNAP=""
 [[ -n "$ASSIGNED_LED"  ]] && mount_one "$ASSIGNED_LED"  "$LEDGER"    || echo "   - ledger  使用系统盘：$LEDGER"
 [[ -n "$ASSIGNED_SNAP" ]] && mount_one "$ASSIGNED_SNAP" "$SNAPSHOT"  || echo "   - snapshot使用系统盘：$SNAPSHOT"
 
-echo "==> 4) 安装 Solana CLI (版本 ${SOLANA_VERSION}) ..."
+echo "==> 5) 从源码构建 Solana CLI (版本 ${SOLANA_VERSION}) ..."
 
-# Download and extract Solana (version already validated in Step 0)
-cd /tmp
-echo "下载 Solana ${SOLANA_VERSION} ..."
-wget "$SOLANA_TARBALL_URL" -O solana-release.tar.bz2
+# Download source code
+BUILD_DIR="/tmp/solana-build"
+SOURCE_DIR="${BUILD_DIR}/agave-${SOLANA_VERSION#v}"
+mkdir -p "$BUILD_DIR"
 
-if [[ ! -f solana-release.tar.bz2 ]]; then
+# Clean old source if exists
+if [[ -d "$SOURCE_DIR" ]]; then
+  echo "   - 清理旧的源码目录..."
+  rm -rf "$SOURCE_DIR"
+fi
+
+cd "$BUILD_DIR"
+echo "   - 下载源码 (${SOLANA_SOURCE_URL})..."
+wget -q --show-progress -O "agave-${SOLANA_VERSION}.tar.gz" "$SOLANA_SOURCE_URL"
+
+if [[ ! -f "agave-${SOLANA_VERSION}.tar.gz" ]]; then
   echo "[错误] 下载失败"
   exit 1
 fi
 
-echo "解压 Solana ..."
-tar jxf solana-release.tar.bz2
+echo "   - 解压源码..."
+tar -xzf "agave-${SOLANA_VERSION}.tar.gz"
 
-if [[ ! -d solana-release ]]; then
-  echo "[错误] 解压失败"
+if [[ ! -d "$SOURCE_DIR" ]]; then
+  echo "[错误] 解压失败，目录不存在: $SOURCE_DIR"
   exit 1
 fi
 
-# Install to /usr/local/solana
-SOLANA_INSTALL_DIR="/usr/local/solana"
-echo "安装 Solana 到 ${SOLANA_INSTALL_DIR} ..."
-rm -rf "$SOLANA_INSTALL_DIR"
-mv solana-release "$SOLANA_INSTALL_DIR"
+# Build Solana
+echo "   - 开始编译 Solana (这可能需要 20-40 分钟)..."
+cd "$SOURCE_DIR"
+
+# Set build options
+CPU_CORES=$(nproc)
+export CARGO_BUILD_JOBS=$CPU_CORES
+echo "   - 使用 ${CPU_CORES} 个 CPU 核心进行并行编译"
+
+# Display start time
+START_TIME=$(date +%s)
+echo "   - 编译开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
+
+# Remove old installation directory if exists
+if [[ -d "$SOLANA_INSTALL_DIR" ]]; then
+  echo "   - 删除旧的安装目录..."
+  rm -rf "$SOLANA_INSTALL_DIR"
+fi
+mkdir -p "$SOLANA_INSTALL_DIR"
+
+# Execute build script
+echo "   - 执行编译脚本..."
+if ! ./scripts/cargo-install-all.sh "$SOLANA_INSTALL_DIR"; then
+  echo "[错误] 编译失败！请检查错误信息"
+  exit 1
+fi
+
+# Calculate build time
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+MINUTES=$((DURATION / 60))
+SECONDS=$((DURATION % 60))
+
+echo "   - 编译完成！耗时: ${MINUTES}分${SECONDS}秒"
+
+# Cleanup build directory
+echo "   - 清理临时编译文件..."
+cd /root
+rm -rf "$BUILD_DIR"
 
 # Configure PATH persistently
 export PATH="$SOLANA_INSTALL_DIR/bin:$PATH"
@@ -192,16 +262,13 @@ if ! command -v solana >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Solana ${SOLANA_VERSION} 安装成功"
+echo "   - Solana ${SOLANA_VERSION} 安装成功"
 solana --version
 
-# Cleanup
-rm -f /tmp/solana-release.tar.bz2
-
-echo "==> 5) 生成 Validator Keypair ..."
+echo "==> 6) 生成 Validator Keypair ..."
 [[ -f "$KEYPAIR" ]] || solana-keygen new -o "$KEYPAIR"
 
-echo "==> 6) 配置 UFW 防火墙 ..."
+echo "==> 7) 配置 UFW 防火墙 ..."
 ufw --force enable
 ufw allow 22
 ufw allow 8000:8020/tcp
@@ -211,7 +278,7 @@ ufw allow 8900   # WS
 ufw allow 10900  # GRPC
 ufw status || true
 
-echo "==> 7) 生成 /root/sol/bin/validator.sh ..."
+echo "==> 8) 生成 /root/sol/bin/validator.sh ..."
 cat > "$BIN/validator.sh" <<'EOF'
 #!/bin/bash
 
@@ -232,7 +299,6 @@ RUST_LOG=warn agave-validator \
  --known-validator GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ \
  --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
  --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ \
- --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d \
  --only-known-rpc \
  --disable-banking-trace \
@@ -255,7 +321,7 @@ RUST_LOG=warn agave-validator \
 EOF
 chmod +x "$BIN/validator.sh"
 
-echo "==> 8) 写入 systemd 服务 /etc/systemd/system/${SERVICE_NAME}.service ..."
+echo "==> 9) 写入 systemd 服务 /etc/systemd/system/${SERVICE_NAME}.service ..."
 cat > /etc/systemd/system/${SERVICE_NAME}.service <<EOF
 [Unit]
 Description=Solana Validator
@@ -277,13 +343,13 @@ WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
 
-echo "==> 9) 下载 Yellowstone gRPC geyser 与配置 ..."
+echo "==> 10) 下载 Yellowstone gRPC geyser 与配置 ..."
 cd "$BIN"
 wget -q "$YELLOWSTONE_TARBALL_URL" -O yellowstone-grpc-geyser.tar.bz2
 tar -xvjf yellowstone-grpc-geyser.tar.bz2
 wget -q "$YELLOWSTONE_CFG_URL" -O "$GEYSER_CFG"
 
-echo "==> 10) 下载 redo_node / restart_node / get_health / catchup ..."
+echo "==> 11) 下载 redo_node / restart_node / get_health / catchup ..."
 cd /root
 wget -q "$REDO_NODE_URL"    -O /root/redo_node.sh
 wget -q "$RESTART_NODE_URL" -O /root/restart_node.sh
@@ -291,11 +357,11 @@ wget -q "$GET_HEALTH_URL"   -O /root/get_health.sh
 wget -q "$CATCHUP_URL"      -O /root/catchup.sh
 chmod +x /root/*.sh
 
-echo "==> 11) 停止 systemd 服务（避免冲突），执行 redo_node.sh ..."
+echo "==> 12) 停止 systemd 服务（避免冲突），执行 redo_node.sh ..."
 systemctl stop "${SERVICE_NAME}" || true
 /root/redo_node.sh
 
-echo "==> 12) 开机自启 ..."
+echo "==> 13) 开机自启 ..."
 systemctl enable "${SERVICE_NAME}"
 
 echo "==> 安装完成。"

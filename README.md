@@ -102,11 +102,24 @@ cpupower frequency-set --governor performance
 watch "grep 'cpu MHz' /proc/cpuinfo"
 ```
 
-### 7. Download and Install Solana CLI
+### 7. Build and Install Solana CLI from Source
 
-**Note**: During the automated installation script, you will be prompted to enter the Solana version number (e.g., v3.0.5, v3.0.6). You can check available versions at: https://github.com/anza-xyz/agave/releases
+**Important**: Solana no longer provides pre-built binaries and must be compiled from source code.
 
-The installation script will automatically download, extract, and configure the specified version.
+**Note**: During the automated installation script, you will be prompted to enter the Solana version number (e.g., v3.0.10, v3.0.9). You can check available versions at: https://github.com/anza-xyz/agave/releases
+
+The installation script will automatically:
+- Install Rust toolchain (if not already installed)
+- Install all compilation dependencies (build-essential, clang, cmake, protobuf, etc.)
+- Download the source code for the specified version
+- Compile Solana (takes approximately 20-40 minutes depending on CPU)
+- Install to `/usr/local/solana`
+- Clean up temporary build files
+
+**System Requirements for Building**:
+- At least 20GB of free disk space in `/tmp` for compilation
+- Recommended: 8+ CPU cores for faster compilation
+- Compilation time varies: 8-12 minutes (32+ cores) to 35-45 minutes (4 cores)
 
 ### 8. Create Validator Keypair
 
@@ -233,7 +246,6 @@ RUST_LOG=warn agave-validator \
  --known-validator GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ \
  --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
  --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ \
- --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d \
  --only-known-rpc \
  --disable-banking-trace \
@@ -301,7 +313,7 @@ sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v8.0.0%2
 tar -xvjf yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 
 # Download yellowstone-config.json, GRPC port configured here: 10900
-sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/yellowstone-config.json
+sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/yellowstone-config.json
 ```
 
 ### 13. Start RPC Node Using Script
@@ -311,10 +323,10 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/
   cd /root
 
   # Download necessary scripts
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/redo_node.sh
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/restart_node.sh
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/get_health.sh
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/catchup.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/redo_node.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/restart_node.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/get_health.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/catchup.sh
 
   # Grant execute permission to scripts
   sudo chmod +x *.sh

@@ -21,7 +21,7 @@
 
 ```bash
 # 下载系统优化脚本
-wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/system-optimize.sh
+wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/system-optimize.sh
 
 # 赋予执行权限
 chmod +x system-optimize.sh
@@ -38,7 +38,7 @@ chmod +x system-optimize.sh
 
 ```bash
 # 下载 Solana 安装脚本
-wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/solana-install.sh
+wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/solana-install.sh
 
 # 赋予执行权限
 chmod +x solana-install.sh
@@ -46,15 +46,25 @@ chmod +x solana-install.sh
 
 **此脚本功能：**
 - 安装 OpenSSL 1.1
+- 安装 Rust 工具链（如果尚未安装）
+- 安装所有编译依赖（build-essential、clang、cmake、protobuf 等）
 - 创建必要目录 (/root/sol/accounts, /root/sol/ledger, /root/sol/snapshot, /root/sol/bin)
-- 自动检测并挂载数据硬盘 (优先顺序：accounts → ledger → snapshot)
-- 安装 Solana CLI v2.3.6 并配置 PATH
+- 自动检测并挂载数据硬盘（优先顺序：accounts → ledger → snapshot）
+- **从源码构建 Solana**（会提示你输入版本号，如 v3.0.10）
+  - 从 GitHub 下载源代码
+  - 编译二进制文件（根据 CPU 需要 20-40 分钟）
+  - 安装到 `/usr/local/solana` 并配置 PATH
+  - 清理临时编译文件
 - 创建验证者密钥对
 - 配置 UFW 防火墙，开放必要端口
 - 创建 validator.sh 启动脚本和 systemd 服务
 - 下载 Yellowstone gRPC geyser 和配置文件
-- 下载管理脚本 (redo_node.sh, restart_node.sh, get_health.sh, catchup.sh)
+- 下载管理脚本（redo_node.sh, restart_node.sh, get_health.sh, catchup.sh）
 - 自动启动节点并下载快照
+
+**源码编译额外要求：**
+- `/tmp` 目录至少需要 20GB 可用空间用于编译
+- 编译时间因 CPU 而异：8-12分钟（32+核心）到 35-45分钟（4核心）
 
 ### 第三步：按顺序执行脚本
 
@@ -67,10 +77,14 @@ sudo ./solana-install.sh
 ```
 
 **重要提示：**
-- 两个脚本都必须以 root 权限运行 (使用 `sudo`)
+- 两个脚本都必须以 root 权限运行（使用 `sudo`）
 - 必须按照上述顺序执行
 - 系统优化脚本应该首先运行，为系统做准备
-- Solana 安装脚本完成后会自动启动节点
+- **Solana 安装过程中会提示你输入版本号**（例如 v3.0.10）
+  - 可在此查看可用版本：https://github.com/anza-xyz/agave/releases
+  - 推荐：v3.0.10（最新稳定版）或 v3.0.9（LTS 长期支持版）
+- **请耐心等待编译过程** - 根据 CPU 性能需要 20-40 分钟
+- Solana 安装脚本编译完成后会自动启动节点
 
 ## 安装后操作
 

@@ -92,11 +92,24 @@ cpupower frequency-set --governor performance
 watch "grep 'cpu MHz' /proc/cpuinfo"
 ```
 
-### 7. 下载安装solana客户端
+### 7. 从源码构建安装 Solana 客户端
 
-**注意**: 自动化安装脚本运行时，会提示你输入 Solana 版本号（例如 v3.0.5、v3.0.6）。可在此查看可用版本: https://github.com/anza-xyz/agave/releases
+**重要提示**: Solana 已不再提供预编译二进制包，必须从源码编译安装。
 
-安装脚本会自动下载、解压并配置指定版本。
+**注意**: 自动化安装脚本运行时，会提示你输入 Solana 版本号（例如 v3.0.10、v3.0.9）。可在此查看可用版本: https://github.com/anza-xyz/agave/releases
+
+安装脚本会自动执行以下步骤:
+- 安装 Rust 工具链（如果尚未安装）
+- 安装所有编译依赖（build-essential、clang、cmake、protobuf 等）
+- 下载指定版本的源代码
+- 编译 Solana（根据 CPU 性能需要约 20-40 分钟）
+- 安装到 `/usr/local/solana`
+- 清理临时编译文件
+
+**编译系统要求**:
+- `/tmp` 目录至少需要 20GB 可用磁盘空间用于编译
+- 推荐: 8+ CPU 核心以加快编译速度
+- 编译时间参考: 8-12分钟（32+核心）到 35-45分钟（4核心）
 
 ### 8. 创建验证者私钥
 ```shell
@@ -218,7 +231,6 @@ RUST_LOG=warn agave-validator \
  --known-validator GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ \
  --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
  --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ \
- --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d \
  --only-known-rpc \
  --disable-banking-trace \
@@ -284,7 +296,7 @@ sudo wget https://github.com/rpcpool/yellowstone-grpc/releases/download/v8.0.0%2
 tar -xvjf yellowstone-grpc-geyser-release22-x86_64-unknown-linux-gnu.tar.bz2
 
 # 下载yellowstone-config.json配置文件, 这里面配置的GRPC端口号是: 10900
-sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/yellowstone-config.json
+sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/yellowstone-config.json
 ```
 
 ### 13. 用脚本启动RPC节点
@@ -293,10 +305,10 @@ sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/
   cd /root
 
   # 下载必要的脚本
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/redo_node.sh
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/restart_node.sh
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/get_health.sh
-  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/catchup.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/redo_node.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/restart_node.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/get_health.sh
+  sudo wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/catchup.sh
 
   # 赋予脚本可执行权限
   sudo chmod +x *.sh

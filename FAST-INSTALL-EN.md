@@ -21,7 +21,7 @@
 
 ```bash
 # Download the system optimization script
-wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/system-optimize.sh
+wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/system-optimize.sh
 
 # Make it executable
 chmod +x system-optimize.sh
@@ -38,7 +38,7 @@ chmod +x system-optimize.sh
 
 ```bash
 # Download the Solana installation script
-wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.7/solana-install.sh
+wget https://github.com/0xfnzero/solana-rpc-install/releases/download/v1.8/solana-install.sh
 
 # Make it executable
 chmod +x solana-install.sh
@@ -46,15 +46,25 @@ chmod +x solana-install.sh
 
 **What this script does:**
 - Installs OpenSSL 1.1
+- Installs Rust toolchain (if not already installed)
+- Installs all compilation dependencies (build-essential, clang, cmake, protobuf, etc.)
 - Creates necessary directories (/root/sol/accounts, /root/sol/ledger, /root/sol/snapshot, /root/sol/bin)
 - Auto-detects and mounts data disks (prioritizes accounts → ledger → snapshot)
-- Installs Solana CLI v2.3.6 and configures PATH
+- **Builds Solana from source** (you'll be prompted to enter version like v3.0.10)
+  - Downloads source code from GitHub
+  - Compiles binaries (takes 20-40 minutes depending on CPU)
+  - Installs to `/usr/local/solana` and configures PATH
+  - Cleans up temporary build files
 - Creates validator keypair
 - Configures UFW firewall with required ports
 - Creates validator.sh startup script and systemd service
 - Downloads Yellowstone gRPC geyser and configuration
 - Downloads management scripts (redo_node.sh, restart_node.sh, get_health.sh, catchup.sh)
 - Automatically starts the node with snapshot download
+
+**Additional Requirements for Source Build:**
+- At least 20GB free space in `/tmp` for compilation
+- Compilation time varies by CPU: 8-12 min (32+ cores) to 35-45 min (4 cores)
 
 ### Step 3: Execute Scripts in Order
 
@@ -70,7 +80,11 @@ sudo ./solana-install.sh
 - Both scripts must be run as root (use `sudo`)
 - Run them in the exact order shown above
 - The system optimization script should be run first to prepare the system
-- The Solana installation script will automatically start the node after completion
+- **During Solana installation, you'll be prompted to enter a version number** (e.g., v3.0.10)
+  - Check available versions at: https://github.com/anza-xyz/agave/releases
+  - Recommended: v3.0.10 (latest stable) or v3.0.9 (LTS)
+- **Be patient during compilation** - it takes 20-40 minutes depending on your CPU
+- The Solana installation script will automatically start the node after compilation completes
 
 ## Post-Installation
 
