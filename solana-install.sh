@@ -271,8 +271,8 @@ echo "==> 6) 生成 Validator Keypair ..."
 echo "==> 7) 配置 UFW 防火墙 ..."
 ufw --force enable
 ufw allow 22
-ufw allow 8000:8020/tcp
-ufw allow 8000:8020/udp
+ufw allow 8000:8025/tcp
+ufw allow 8000:8025/udp
 ufw allow 8899   # HTTP
 ufw allow 8900   # WS
 ufw allow 10900  # GRPC
