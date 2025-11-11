@@ -93,13 +93,21 @@ bash /root/performance-monitor.sh snapshot
 
 ### Swap 配置建议
 
+⚠️ **重要**: Swap **不会自动添加**，需要用户根据系统RAM大小手动执行。
+
 **追块同步阶段** (内存高峰期):
 - 内存峰值可能达到 110-120GB
-- 建议添加 32GB swap 作为安全缓冲
+- **建议手动添加** 32GB swap 作为安全缓冲
 
 ```bash
-# 仅在系统 RAM < 160GB 时添加 swap
+# 步骤4之后，在节点启动前执行（可选，推荐128GB系统使用）
+cd /root/solana-rpc-install
 sudo bash add-swap-128g.sh
+
+# 脚本会自动检测：
+# - 仅在系统 RAM < 160GB 时添加 swap
+# - 如果已存在 swap 会跳过
+# - 添加 32GB swap，swappiness=10（最小化使用）
 ```
 
 **同步完成后** (稳定运行阶段):

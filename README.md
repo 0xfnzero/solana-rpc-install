@@ -93,13 +93,21 @@ bash /root/performance-monitor.sh snapshot
 
 ### Swap Configuration Recommendations
 
+⚠️ **Important**: Swap is **NOT automatically added**. Users must manually execute based on system RAM.
+
 **During Block Synchronization** (Peak Memory Usage):
 - Memory peaks may reach 110-120GB
-- Recommended to add 32GB swap as safety buffer
+- **Manually add** 32GB swap as safety buffer (recommended)
 
 ```bash
-# Add swap only if system RAM < 160GB
+# After Step 4, before node starts (Optional, recommended for 128GB systems)
+cd /root/solana-rpc-install
 sudo bash add-swap-128g.sh
+
+# Script automatically checks:
+# - Only adds swap if system RAM < 160GB
+# - Skips if swap already exists
+# - Adds 32GB swap with swappiness=10 (minimal usage)
 ```
 
 **After Synchronization Completes** (Steady State):
