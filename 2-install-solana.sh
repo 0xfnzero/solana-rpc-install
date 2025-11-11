@@ -1,23 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
-# =============================
-# Solana Install (从源码构建版本)
-# - 从源码编译安装 Solana (不再使用预编译二进制)
+# ============================================
+# 步骤2: 安装 Solana（从源码构建）
+# ============================================
+# 前置条件: 必须先运行 1-prepare.sh
 # - Install OpenSSL 1.1
 # - Install Rust toolchain
-# - Create /root/sol/* directories
-# - Auto-detect data disks (exclude system disk), prefer largest candidates
-# - Mount priority: /root/sol/accounts -> /root/sol/ledger -> /root/sol/snapshot
-#   * fstab uses defaults per tutorial (no extra options)
 # - Build & Install Solana CLI from source
 # - Create validator keypair
 # - UFW enable + allow ports
 # - Create validator.sh and systemd service
 # - Download Yellowstone gRPC geyser & config
-# - Download redo_node.sh / restart_node.sh / get_health.sh / catchup.sh
-# - Run redo_node.sh
-# =============================
+# - Download helper scripts (redo_node / restart_node / get_health / catchup)
+# ============================================
 
 BASE=${BASE:-/root/sol}
 LEDGER="$BASE/ledger"
@@ -112,68 +108,6 @@ echo "   - 更新 Rust 到最新稳定版..."
 rustup update stable
 rustup default stable
 rustup component add rustfmt
-
-echo "==> 3) 创建目录 ..."
-mkdir -p "$LEDGER" "$ACCOUNTS" "$SNAPSHOT" "$BIN" "$TOOLS"
-
-# ---------- 自动判盘并挂载（优先：accounts -> ledger -> snapshot） ----------
-echo "==> 4) 自动检测磁盘并安全挂载（优先 accounts）..."
-ROOT_SRC=$(findmnt -no SOURCE / || true)
-ROOT_DISK=""
-if [[ -n "${ROOT_SRC:-}" ]]; then
-  ROOT_DISK=$(lsblk -no pkname "$ROOT_SRC" 2>/dev/null || true)
-  [[ -n "$ROOT_DISK" ]] && ROOT_DISK="/dev/$ROOT_DISK"
-fi
-MAP_DISKS=($(lsblk -dn -o NAME,TYPE | awk '$2=="disk"{print $1}'))
-
-is_mounted_dev() { findmnt -no TARGET "$1" &>/dev/null; }
-has_fs() { blkid -o value -s TYPE "$1" &>/dev/null; }
-
-mount_one() {
-  local dev="$1"; local target="$2"
-  if is_mounted_dev "$dev"; then
-    echo "   - 已挂载：$dev -> $(findmnt -no TARGET "$dev")，跳过"; return 0
-  fi
-  if ! has_fs "$dev"; then
-    echo "   - 为 $dev 创建 ext4 文件系统（首次使用）"; mkfs.ext4 -F "$dev"
-  fi
-  mkdir -p "$target"
-  # 教程要求 /etc/fstab 使用 defaults（不附加额外选项）
-  mount -o defaults "$dev" "$target"
-  if ! grep -qE "^[^ ]+ +$target " /etc/fstab; then
-    echo "$dev $target ext4 defaults 0 0" >> /etc/fstab
-  fi
-  echo "   - 挂载完成：$dev -> $target"
-}
-
-# 收集候选设备（排除系统盘；对有分区的磁盘选择最大未挂载分区）
-CANDIDATES=()
-for d in "${MAP_DISKS[@]}"; do
-  disk="/dev/$d"
-  [[ -n "$ROOT_DISK" && "$disk" == "$ROOT_DISK" ]] && continue
-  parts=($(lsblk -n -o NAME,TYPE "$disk" | awk '$2=="part"{gsub(/^[├─└│ ]*/, "", $1); print $1}'))
-  if ((${#parts[@]}==0)); then
-    is_mounted_dev "$disk" || CANDIDATES+=("$disk")
-  else
-    best=""; best_size=0
-    for p in "${parts[@]}"; do
-      part="/dev/$p"; is_mounted_dev "$part" && continue
-      size=$(lsblk -bno SIZE "$part")
-      (( size > best_size )) && { best="$part"; best_size=$size; }
-    done
-    [[ -n "$best" ]] && CANDIDATES+=("$best")
-  fi
-done
-
-echo "==> 候选数据设备：${CANDIDATES[*]:-"<无>"}"
-ASSIGNED_ACC=""; ASSIGNED_LED=""; ASSIGNED_SNAP=""
-((${#CANDIDATES[@]}>0)) && ASSIGNED_ACC="${CANDIDATES[0]}"
-((${#CANDIDATES[@]}>1)) && ASSIGNED_LED="${CANDIDATES[1]}"
-((${#CANDIDATES[@]}>2)) && ASSIGNED_SNAP="${CANDIDATES[2]}"
-
-[[ -n "$ASSIGNED_ACC"  ]] && mount_one "$ASSIGNED_ACC"  "$ACCOUNTS"  || echo "   - accounts 使用系统盘：$ACCOUNTS"
-[[ -n "$ASSIGNED_LED"  ]] && mount_one "$ASSIGNED_LED"  "$LEDGER"    || echo "   - ledger  使用系统盘：$LEDGER"
-[[ -n "$ASSIGNED_SNAP" ]] && mount_one "$ASSIGNED_SNAP" "$SNAPSHOT"  || echo "   - snapshot使用系统盘：$SNAPSHOT"
 
 echo "==> 5) 从源码构建 Solana CLI (版本 ${SOLANA_VERSION}) ..."
 
@@ -282,13 +216,46 @@ echo "==> 8) 生成 /root/sol/bin/validator.sh ..."
 cat > "$BIN/validator.sh" <<'EOF'
 #!/bin/bash
 
-RUST_LOG=warn agave-validator \
+# ============================================
+# Solana RPC Node - 128GB Memory Optimized
+# ============================================
+# CRITICAL: Memory-constrained optimization
+# Target: Stay under 110GB peak usage
+# Focus: Essential RPC functionality only
+# ============================================
+
+# Environment optimizations
+export RUST_LOG=warn
+export RUST_BACKTRACE=1
+export SOLANA_METRICS_CONFIG=""
+
+# Detect CPU cores for optimal threading
+CPU_CORES=$(nproc)
+# Conservative RPC threads to save memory
+RPC_THREADS=$((CPU_CORES / 3))
+[[ $RPC_THREADS -lt 8 ]] && RPC_THREADS=8
+[[ $RPC_THREADS -gt 16 ]] && RPC_THREADS=16
+
+echo "Starting Solana Validator - 128GB Memory Mode"
+echo "CPU Cores: $CPU_CORES | RPC Threads: $RPC_THREADS"
+
+# Memory distribution analysis:
+# - Accounts DB: ~60-70GB (largest consumer)
+# - Indexes: ~10-15GB (with minimal indexing)
+# - RPC cache: ~5GB
+# - Ledger/Snapshot: ~10GB
+# - System/Geyser/Buffers: ~15-20GB
+# Total: ~100-110GB peak
+
+exec agave-validator \
  --geyser-plugin-config /root/sol/bin/yellowstone-config.json \
  --ledger /root/sol/ledger \
  --accounts /root/sol/accounts \
  --identity /root/sol/bin/validator-keypair.json \
  --snapshots /root/sol/snapshot \
  --log /root/solana-rpc.log \
+ \
+ `# ============ Network Configuration ============` \
  --entrypoint entrypoint.mainnet-beta.solana.com:8001 \
  --entrypoint entrypoint2.mainnet-beta.solana.com:8001 \
  --entrypoint entrypoint3.mainnet-beta.solana.com:8001 \
@@ -301,23 +268,70 @@ RUST_LOG=warn agave-validator \
  --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ \
  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d \
  --only-known-rpc \
- --disable-banking-trace \
+ --no-port-check \
+ --dynamic-port-range 8000-8025 \
+ --gossip-port 8001 \
+ \
+ `# ============ RPC Configuration (Memory-Optimized) ============` \
  --rpc-bind-address 0.0.0.0 \
  --rpc-port 8899 \
  --full-rpc-api \
  --private-rpc \
- --no-voting \
- --dynamic-port-range 8000-8025 \
- --wal-recovery-mode skip_any_corrupted_record \
- --limit-ledger-size 60000000 \
- --no-port-check \
- --no-snapshot-fetch \
- --account-index-include-key AddressLookupTab1e1111111111111111111111111 \
+ --rpc-threads $RPC_THREADS \
+ --rpc-max-multiple-accounts 50 \
+ --rpc-max-request-body-size 20971520 \
+ --rpc-bigtable-timeout 180 \
+ --rpc-send-retry-ms 1000 \
+ --rpc-send-batch-ms 5 \
+ --rpc-send-batch-size 100 \
+ \
+ `# ============ Account Index (MINIMAL - Critical for Memory) ============` \
+ `# Each index adds ~2-5GB memory usage` \
+ `# Only enable program-id (essential for RPC queries)` \
  --account-index program-id \
- --rpc-bigtable-timeout 300 \
- --full-snapshot-interval-slots 1577880000 \
- --incremental-snapshot-interval-slots 788940000 \
- --incremental-snapshot-archive-path /root/sol/snapshot
+ --account-index-include-key AddressLookupTab1e1111111111111111111111111 \
+ `# Exclude high-volume token program to save memory (~3-5GB saved)` \
+ --account-index-exclude-key TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA \
+ \
+ `# ============ Snapshot Configuration (Memory-Efficient) ============` \
+ --no-incremental-snapshots \
+ --maximum-full-snapshots-to-retain 2 \
+ --maximum-incremental-snapshots-to-retain 2 \
+ --minimal-snapshot-download-speed 10485760 \
+ --use-snapshot-archives-at-startup when-newest \
+ \
+ `# ============ Ledger Management ============` \
+ --limit-ledger-size 50000000 \
+ --wal-recovery-mode skip_any_corrupted_record \
+ --enable-rpc-transaction-history \
+ \
+ `# ============ Accounts DB (CRITICAL Memory Settings) ============` \
+ `# Skip shrink to avoid memory spikes during compaction` \
+ --accounts-db-skip-shrink \
+ `# Conservative cache limit (2GB instead of 4GB)` \
+ --accounts-db-cache-limit-mb 2048 \
+ `# Aggressive shrink threshold to reduce DB bloat` \
+ --account-shrink-percentage 90 \
+ `# Limit accounts index memory to 4GB (reduced from 8GB)` \
+ --accounts-index-memory-limit-mb 4096 \
+ `# Fewer bins = less memory overhead` \
+ --accounts-index-bins 4096 \
+ \
+ `# ============ Performance Tuning (Memory-Aware) ============` \
+ --block-production-method central-scheduler \
+ --health-check-slot-distance 150 \
+ --banking-trace-dir-byte-limit 0 \
+ --disable-banking-trace \
+ --poh-verify-threads 1 \
+ \
+ `# ============ RPC Node Specific ============` \
+ --no-voting \
+ --no-wait-for-vote-to-start-leader \
+ --allow-private-addr \
+ \
+ `# ============ Memory & Resource Management ============` \
+ --bind-address 0.0.0.0 \
+ --log-messages-bytes-limit 536870912
 EOF
 chmod +x "$BIN/validator.sh"
 
@@ -325,18 +339,48 @@ echo "==> 9) 写入 systemd 服务 /etc/systemd/system/${SERVICE_NAME}.service .
 cat > /etc/systemd/system/${SERVICE_NAME}.service <<EOF
 [Unit]
 Description=Solana Validator
-After=network.target
-StartLimitIntervalSec=0
+After=network.target network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
-Restart=always
-RestartSec=1
+Restart=on-failure
+RestartSec=30
 User=root
 LimitNOFILE=1000000
+LimitNPROC=1000000
+LimitMEMLOCK=infinity
+LimitSTACK=infinity
+LimitCORE=infinity
 LogRateLimitIntervalSec=0
 Environment="PATH=${SOLANA_INSTALL_DIR}/bin:/usr/bin:/bin"
+Environment="RUST_LOG=warn"
+Environment="RUST_BACKTRACE=1"
+# Prevent OOM killer from targeting this process
+OOMScoreAdjust=-900
+# Memory limits (adjust based on your system RAM)
+MemoryHigh=110G
+MemoryMax=120G
+# CPU affinity and scheduling
+Nice=-10
+IOSchedulingClass=realtime
+IOSchedulingPriority=0
+# Watchdog for health monitoring
+WatchdogSec=120
+# Graceful shutdown timeout
+TimeoutStopSec=300
+KillMode=mixed
+KillSignal=SIGINT
+# Working directory
+WorkingDirectory=/root/sol
+# Startup command
 ExecStart=$BIN/validator.sh
+# Pre-start validation
+ExecStartPre=/bin/bash -c 'test -f /root/sol/bin/validator-keypair.json'
+ExecStartPre=/bin/bash -c 'test -d /root/sol/ledger'
+ExecStartPre=/bin/bash -c 'test -d /root/sol/accounts'
 
 [Install]
 WantedBy=multi-user.target
@@ -357,15 +401,22 @@ wget -q "$GET_HEALTH_URL"   -O /root/get_health.sh
 wget -q "$CATCHUP_URL"      -O /root/catchup.sh
 chmod +x /root/*.sh
 
-echo "==> 12) 停止 systemd 服务（避免冲突），执行 redo_node.sh ..."
-systemctl stop "${SERVICE_NAME}" || true
-/root/redo_node.sh
-
-echo "==> 13) 开机自启 ..."
+echo "==> 12) 配置开机自启 ..."
 systemctl enable "${SERVICE_NAME}"
 
-echo "==> 安装完成。"
-echo "日志： tail -f $LOGFILE"
-echo "健康检查： /root/get_health.sh"
-echo "追块： /root/catchup.sh"
-echo "重启： /root/restart_node.sh  或  systemctl restart ${SERVICE_NAME}"
+echo ""
+echo "============================================"
+echo "✅ 步骤 2 完成: Solana 安装完成!"
+echo "============================================"
+echo ""
+echo "版本: ${SOLANA_VERSION}"
+echo "安装路径: ${SOLANA_INSTALL_DIR}"
+echo ""
+echo "📋 下一步:"
+echo ""
+echo "步骤 3: 重启系统（使系统优化生效）"
+echo "  reboot"
+echo ""
+echo "步骤 4: 重启后下载快照并启动节点"
+echo "  bash /root/3-start.sh"
+echo ""

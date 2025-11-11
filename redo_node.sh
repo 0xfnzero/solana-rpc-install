@@ -15,13 +15,14 @@ dirs=(
   "/root/sol/snapshot"
 )
 
-# 清空目录内容但保留目录
+# 清空目录内容并确保目录存在
 for dir in "${dirs[@]}"; do
   if [ -d "$dir" ]; then
     echo "Cleaning directory: $dir"
     rm -rf "$dir"/* "$dir"/.[!.]* "$dir"/..?* || true
   else
-    echo "Directory does not exist: $dir (skipping)"
+    echo "Creating directory: $dir"
+    mkdir -p "$dir"
   fi
 done
 

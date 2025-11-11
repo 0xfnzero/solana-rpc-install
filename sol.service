@@ -1,17 +1,47 @@
 [Unit]
 Description=Solana Validator
-After=network.target
-StartLimitIntervalSec=0
+After=network.target network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
-Restart=always
-RestartSec=1
+Restart=on-failure
+RestartSec=30
 User=root
 LimitNOFILE=1000000
+LimitNPROC=1000000
+LimitMEMLOCK=infinity
+LimitSTACK=infinity
+LimitCORE=infinity
 LogRateLimitIntervalSec=0
 Environment="PATH=/usr/local/solana/bin:/usr/bin:/bin"
+Environment="RUST_LOG=warn"
+Environment="RUST_BACKTRACE=1"
+# Prevent OOM killer from targeting this process
+OOMScoreAdjust=-900
+# Memory limits (adjust based on your system RAM)
+MemoryHigh=110G
+MemoryMax=120G
+# CPU affinity and scheduling
+Nice=-10
+IOSchedulingClass=realtime
+IOSchedulingPriority=0
+# Watchdog disabled - node initialization takes longer than 2 minutes
+# WatchdogSec=120
+# Graceful shutdown timeout
+TimeoutStopSec=300
+KillMode=mixed
+KillSignal=SIGINT
+# Working directory
+WorkingDirectory=/root/sol
+# Startup command
 ExecStart=/root/sol/bin/validator.sh
+# Pre-start validation
+ExecStartPre=/bin/bash -c 'test -f /root/sol/bin/validator-keypair.json'
+ExecStartPre=/bin/bash -c 'test -d /root/sol/ledger'
+ExecStartPre=/bin/bash -c 'test -d /root/sol/accounts'
 
 [Install]
 WantedBy=multi-user.target
