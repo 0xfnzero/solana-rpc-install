@@ -4,24 +4,24 @@
     "level": "warn"
   },
   "tokio": {
-    "worker_threads": 24,
+    "worker_threads": 28,
     "affinity": null
   },
   "grpc": {
     "address": "0.0.0.0:10900",
     "compression": {
-      "accept": ["zstd"],
-      "send": ["zstd"]
+      "accept": [],
+      "send": []
     },
     "server_http2_adaptive_window": false,
     "server_http2_keepalive_interval": "5s",
     "server_http2_keepalive_timeout": "10s",
-    "server_initial_connection_window_size": 16777216,
-    "server_initial_stream_window_size": 8388608,
+    "server_initial_connection_window_size": 33554432,
+    "server_initial_stream_window_size": 16777216,
     "max_decoding_message_size": "33_554_432",
     "snapshot_plugin_channel_capacity": null,
-    "snapshot_client_channel_capacity": "200_000_000",
-    "channel_capacity": "1_000_000",
+    "snapshot_client_channel_capacity": "250_000_000",
+    "channel_capacity": "1_500_000",
     "unary_concurrency_limit": 5000,
     "unary_disabled": false,
     "x_token": null,
