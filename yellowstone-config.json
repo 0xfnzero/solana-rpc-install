@@ -4,7 +4,7 @@
     "level": "warn"
   },
   "tokio": {
-    "worker_threads": 16,
+    "worker_threads": 24,
     "affinity": null
   },
   "grpc": {
@@ -13,16 +13,16 @@
       "accept": ["zstd"],
       "send": ["zstd"]
     },
-    "server_http2_adaptive_window": true,
-    "server_http2_keepalive_interval": "10s",
-    "server_http2_keepalive_timeout": "20s",
-    "server_initial_connection_window_size": 8388608,
-    "server_initial_stream_window_size": 4194304,
-    "max_decoding_message_size": "16_777_216",
+    "server_http2_adaptive_window": false,
+    "server_http2_keepalive_interval": "5s",
+    "server_http2_keepalive_timeout": "10s",
+    "server_initial_connection_window_size": 16777216,
+    "server_initial_stream_window_size": 8388608,
+    "max_decoding_message_size": "33_554_432",
     "snapshot_plugin_channel_capacity": null,
-    "snapshot_client_channel_capacity": "100_000_000",
-    "channel_capacity": "500_000",
-    "unary_concurrency_limit": 2000,
+    "snapshot_client_channel_capacity": "200_000_000",
+    "channel_capacity": "1_000_000",
+    "unary_concurrency_limit": 5000,
     "unary_disabled": false,
     "x_token": null,
     "filter_name_size_limit": 256,
