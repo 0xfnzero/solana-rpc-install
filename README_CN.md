@@ -160,8 +160,7 @@ sudo bash add-swap-128g.sh
 
 完成 RPC 节点安装后，您可以通过 Jito ShredStream 进一步提升性能：
 
-- **快速开始指南**: [QUICK_START.md](https://github.com/0xfnzero/jito-shredstream-install/blob/main/QUICK_START.md) (英文)
-- **中文快速开始**: [QUICK_START_CN.md](https://github.com/0xfnzero/jito-shredstream-install/blob/main/QUICK_START_CN.md)
+- **快速开始指南**: [QUICK_START_CN.md](https://github.com/0xfnzero/jito-shredstream-install/blob/main/QUICK_START_CN.md)
 - **项目仓库**: [jito-shredstream-install](https://github.com/0xfnzero/jito-shredstream-install)
 
 ShredStream 为 Jito MEV 基础设施提供低延迟的区块流传输。

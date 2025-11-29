@@ -161,7 +161,6 @@ sudo bash add-swap-128g.sh
 After completing your RPC node installation, you can enhance performance with Jito ShredStream:
 
 - **Quick Start Guide**: [QUICK_START.md](https://github.com/0xfnzero/jito-shredstream-install/blob/main/QUICK_START.md)
-- **中文快速开始**: [QUICK_START_CN.md](https://github.com/0xfnzero/jito-shredstream-install/blob/main/QUICK_START_CN.md)
 - **Repository**: [jito-shredstream-install](https://github.com/0xfnzero/jito-shredstream-install)
 
 ShredStream provides low-latency block streaming for Jito MEV infrastructure.
