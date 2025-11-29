@@ -101,9 +101,8 @@ bash 3-start.sh
 ```
 
 > **💡 Which method to choose?**
-> - **Jito Precompiled**: Fast installation, includes MEV support, production-ready. Recommended for most users.
-> - **Source Compilation**: Full control, custom build options, for developers and advanced users.
-> - **Details**: See [JITO_VS_SOURCE.md](JITO_VS_SOURCE.md) for complete comparison.
+> - **Jito Precompiled**: Fast installation (2-3 min), includes MEV support, production-ready. Recommended for most users.
+> - **Source Compilation**: Full control, custom build options, for developers and advanced users (20-40 min).
 
 ## ⚠️ Critical: Memory Management Details (Required for 128GB Systems)
 
@@ -290,13 +289,21 @@ If you need the aggressive optimization config for specific use cases:
 ## 📚 Documentation
 
 - **Installation Guide**: You're reading it!
-- **Installation Comparison**: See [JITO_VS_SOURCE.md](JITO_VS_SOURCE.md)
-- **Jito Quick Start**: See [JITO_QUICKSTART.md](JITO_QUICKSTART.md)
 - **Mount Strategy**: See [MOUNT_STRATEGY.md](MOUNT_STRATEGY.md)
 - **Troubleshooting**: Check logs with `journalctl -u sol -f`
 - **Configuration**: All optimizations included by default
 - **Monitoring**: Use provided helper scripts
 - **Optimization Details**: See `YELLOWSTONE_OPTIMIZATION.md`
+
+## 🚀 Next Steps: Install Jito ShredStream
+
+After completing your RPC node installation, you can enhance performance with Jito ShredStream:
+
+- **Quick Start Guide**: [QUICK_START.md](https://github.com/0xfnzero/jito-shredstream-install/blob/main/QUICK_START.md)
+- **中文快速开始**: [QUICK_START_CN.md](https://github.com/0xfnzero/jito-shredstream-install/blob/main/QUICK_START_CN.md)
+- **Repository**: [jito-shredstream-install](https://github.com/0xfnzero/jito-shredstream-install)
+
+ShredStream provides low-latency block streaming for Jito MEV infrastructure.
 
 ## 🤝 Support & Community
 

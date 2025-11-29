@@ -290,13 +290,21 @@ bash /root/performance-monitor.sh snapshot
 ## 📚 文档资源
 
 - **安装指南**: 您正在阅读！
-- **安装对比**: 查看 [JITO_VS_SOURCE.md](JITO_VS_SOURCE.md)
-- **Jito 快速开始**: 查看 [JITO_QUICKSTART.md](JITO_QUICKSTART.md)
 - **挂载策略**: 查看 [MOUNT_STRATEGY.md](MOUNT_STRATEGY.md)
 - **故障排除**: 使用 `journalctl -u sol -f` 查看日志
 - **配置**: 所有优化默认包含
 - **监控**: 使用提供的辅助脚本
 - **优化详情**: 查看 `YELLOWSTONE_OPTIMIZATION.md`
+
+## 🚀 下一步：安装 Jito ShredStream
+
+完成 RPC 节点安装后，您可以通过 Jito ShredStream 进一步提升性能：
+
+- **快速开始指南**: [QUICK_START.md](https://github.com/0xfnzero/jito-shredstream-install/blob/main/QUICK_START.md) (英文)
+- **中文快速开始**: [QUICK_START_CN.md](https://github.com/0xfnzero/jito-shredstream-install/blob/main/QUICK_START_CN.md)
+- **项目仓库**: [jito-shredstream-install](https://github.com/0xfnzero/jito-shredstream-install)
+
+ShredStream 为 Jito MEV 基础设施提供低延迟的区块流传输。
 
 ## 🤝 支持与社区
 
