@@ -43,13 +43,16 @@
 
 **Minimum Configuration:**
 - **CPU**: AMD Ryzen 9 9950X (or equivalent)
-- **RAM**: 192 GB minimum (256 GB recommended)
+- **RAM**: 128 GB minimum (256 GB recommended)
 - **Storage**: 2-3x NVMe SSDs (1TB system + 2TB accounts OR combined 2TB+ accounts/ledger)
 - **OS**: Ubuntu 20.04/22.04
 - **Network**: High-bandwidth connection (1 Gbps+)
 
 ## 🚀 Quick Start
 
+### Choose Your Installation Method
+
+**Option A: Jito Precompiled (⚡ Recommended - 2-3 minutes)**
 ```bash
 # Switch to root user
 sudo su -
@@ -59,16 +62,42 @@ cd /root
 git clone https://github.com/0xfnzero/solana-rpc-install.git
 cd solana-rpc-install
 
-# Step 1: Mount disks + System optimization (no reboot needed)
+# Step 1: Mount disks + System optimization
 bash 1-prepare.sh
 
-# Step 2: Install Solana from source (20-40 minutes)
+# Step 2: Install Jito Solana (precompiled, 2-3 minutes)
+bash 2-install-solana-jito.sh
+# Enter version when prompted (e.g., v3.0.11)
+
+# Step 3: Download snapshot and start node
+bash 3-start.sh
+```
+
+**Option B: Source Compilation (🔧 Advanced - 20-40 minutes)**
+```bash
+# Switch to root user
+sudo su -
+
+# Clone repository to /root
+cd /root
+git clone https://github.com/0xfnzero/solana-rpc-install.git
+cd solana-rpc-install
+
+# Step 1: Mount disks + System optimization
+bash 1-prepare.sh
+
+# Step 2: Build Solana from source (20-40 minutes)
 bash 2-install-solana.sh
 # Enter version when prompted (e.g., v3.0.10)
 
 # Step 3: Download snapshot and start node
 bash 3-start.sh
 ```
+
+> **💡 Which method to choose?**
+> - **Jito Precompiled**: Fast installation, includes MEV support, production-ready. Recommended for most users.
+> - **Source Compilation**: Full control, custom build options, for developers and advanced users.
+> - **Details**: See [JITO_VS_SOURCE.md](JITO_VS_SOURCE.md) for complete comparison.
 
 ## ⚠️ Critical: Memory Management Details (Required for 128GB Systems)
 
@@ -165,7 +194,9 @@ All configurations are based on **proven production deployments** with thousands
 
 ### 🚀 Deployment Features
 
-- 📦 **Source Compilation**: Latest Agave version from GitHub
+- 📦 **Dual Installation Options**:
+  - ⚡ Jito precompiled binaries (2-3 min, MEV-ready)
+  - 🔧 Source compilation from GitHub (20-40 min, full control)
 - 🔄 **Automatic Disk Management**: Smart disk detection and mounting
 - 🛡️ **Production Ready**: Systemd service with memory limits and OOM protection
 - 📊 **Monitoring Tools**: Performance tracking and health checks included
@@ -193,7 +224,10 @@ All configurations are based on **proven production deployments** with thousands
 ┌─────────────────────────────────────────────────────────┐
 │                   Solana RPC Node Stack                  │
 ├─────────────────────────────────────────────────────────┤
-│  Agave Validator (Latest v3.0.x from source)            │
+│  Solana Validator (v3.0.x)                              │
+│  ├─ Installation Options:                               │
+│  │  • Jito precompiled (MEV-ready, 2-3 min)             │
+│  │  • Agave source build (custom, 20-40 min)            │
 │  ├─ Yellowstone gRPC Plugin v10.0.1 (Data streaming)   │
 │  ├─ RPC HTTP/WebSocket (Port 8899/8900)                 │
 │  └─ Accounts & Ledger (Optimized RocksDB)               │
@@ -250,6 +284,9 @@ If you need the aggressive optimization config for specific use cases:
 ## 📚 Documentation
 
 - **Installation Guide**: You're reading it!
+- **Installation Comparison**: See [JITO_VS_SOURCE.md](JITO_VS_SOURCE.md)
+- **Jito Quick Start**: See [JITO_QUICKSTART.md](JITO_QUICKSTART.md)
+- **Mount Strategy**: See [MOUNT_STRATEGY.md](MOUNT_STRATEGY.md)
 - **Troubleshooting**: Check logs with `journalctl -u sol -f`
 - **Configuration**: All optimizations included by default
 - **Monitoring**: Use provided helper scripts
