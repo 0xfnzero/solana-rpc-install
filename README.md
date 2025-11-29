@@ -65,6 +65,9 @@ cd solana-rpc-install
 # Step 1: Mount disks + System optimization
 bash 1-prepare.sh
 
+# (Optional) Verify mount configuration
+bash verify-mounts.sh
+
 # Step 2: Install Jito Solana (precompiled, 2-3 minutes)
 bash 2-install-solana-jito.sh
 # Enter version when prompted (e.g., v3.0.11)
@@ -85,6 +88,9 @@ cd solana-rpc-install
 
 # Step 1: Mount disks + System optimization
 bash 1-prepare.sh
+
+# (Optional) Verify mount configuration
+bash verify-mounts.sh
 
 # Step 2: Build Solana from source (20-40 minutes)
 bash 2-install-solana.sh
