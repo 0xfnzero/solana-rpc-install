@@ -98,14 +98,11 @@ sudo bash 1-prepare.sh
 sudo bash 2-install-solana-jito.sh
 # 提示输入版本号时，输入: v3.0.11
 
-# 步骤 3: 重启系统
-sudo reboot
-
-# 步骤 4: 重启后验证安装
-echo $PATH  # 应包含 /usr/local/solana/bin
+# 步骤 3: 加载环境变量并验证
+source /etc/profile.d/solana.sh
 solana --version  # 应显示版本信息
 
-# 步骤 5: 下载快照并启动
+# 步骤 4: 下载快照并启动
 cd /path/to/solana-rpc-install
 bash 3-start.sh
 ```
@@ -171,9 +168,6 @@ source /etc/profile.d/solana.sh
 # 或者重新登录
 exit
 ssh root@your-server
-
-# 或者重启系统 (最彻底)
-sudo reboot
 ```
 
 ## 📁 安装目录结构
@@ -317,8 +311,9 @@ cat /etc/profile.d/solana.sh
 # 3. 重新加载环境变量
 source /etc/profile.d/solana.sh
 
-# 4. 如果还不行，重启系统
-sudo reboot
+# 4. 或者重新登录 SSH 会话
+exit
+ssh root@your-server
 ```
 
 ### Q4: 如何验证安装的是 Jito 版本？
