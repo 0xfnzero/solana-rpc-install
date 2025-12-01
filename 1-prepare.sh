@@ -123,6 +123,57 @@ for d in "${MAP_DISKS[@]}"; do
 done
 
 echo "   候选数据设备：${CANDIDATES[*]:-"<无>"}"
+
+# 检查当前挂载状态，验证优先级
+echo ""
+echo "==> 2.1) 检查当前 Solana 目录挂载状态..."
+CURRENT_ACC_DEV=$(df -P "$ACCOUNTS" 2>/dev/null | tail -1 | awk '{print $1}')
+CURRENT_LED_DEV=$(df -P "$LEDGER" 2>/dev/null | tail -1 | awk '{print $1}')
+CURRENT_SNAP_DEV=$(df -P "$SNAPSHOT" 2>/dev/null | tail -1 | awk '{print $1}')
+
+CURRENT_ACC_MOUNT=$(df -P "$ACCOUNTS" 2>/dev/null | tail -1 | awk '{print $6}')
+CURRENT_LED_MOUNT=$(df -P "$LEDGER" 2>/dev/null | tail -1 | awk '{print $6}')
+CURRENT_SNAP_MOUNT=$(df -P "$SNAPSHOT" 2>/dev/null | tail -1 | awk '{print $6}')
+
+# 检测优先级错误
+PRIORITY_ERROR=false
+if [[ "$CURRENT_ACC_MOUNT" != "$ACCOUNTS" && "$CURRENT_LED_MOUNT" == "$LEDGER" ]]; then
+    echo "   ⚠️  检测到优先级错误："
+    echo "   - Accounts 未独立挂载（在 $CURRENT_ACC_MOUNT 上）"
+    echo "   - Ledger 已独立挂载（$CURRENT_LED_DEV -> $LEDGER）"
+    echo "   - 这违反了优先级规则：Accounts (最高) > Ledger (中等)"
+    PRIORITY_ERROR=true
+fi
+
+if [[ "$CURRENT_ACC_MOUNT" != "$ACCOUNTS" && "$CURRENT_SNAP_MOUNT" == "$SNAPSHOT" ]]; then
+    echo "   ⚠️  检测到优先级错误："
+    echo "   - Accounts 未独立挂载（在 $CURRENT_ACC_MOUNT 上）"
+    echo "   - Snapshot 已独立挂载（$CURRENT_SNAP_DEV -> $SNAPSHOT）"
+    echo "   - 这违反了优先级规则：Accounts (最高) > Snapshot (最低)"
+    PRIORITY_ERROR=true
+fi
+
+if $PRIORITY_ERROR; then
+    echo ""
+    echo "   ❌ 无法自动修复优先级错误（避免数据丢失风险）"
+    echo ""
+    echo "   📋 推荐修复步骤："
+    echo "   1. 停止 Solana 节点（如果正在运行）：systemctl stop sol"
+    echo "   2. 运行优先级修复脚本：bash $SCRIPT_DIR/fix-mount-priority.sh"
+    echo "   3. 验证修复结果：bash $SCRIPT_DIR/verify-mounts.sh"
+    echo ""
+    echo "   或者手动调整（高级用户）："
+    echo "   1. 卸载 ledger 和 snapshot"
+    echo "   2. 重新按优先级挂载：accounts -> ledger -> snapshot"
+    echo "   3. 更新 /etc/fstab 配置"
+    echo ""
+    exit 1
+fi
+
+echo "   ✓ 挂载优先级检查通过"
+echo ""
+
+# 分配设备
 ASSIGNED_ACC=""; ASSIGNED_LED=""; ASSIGNED_SNAP=""
 ((${#CANDIDATES[@]}>0)) && ASSIGNED_ACC="${CANDIDATES[0]}"
 ((${#CANDIDATES[@]}>1)) && ASSIGNED_LED="${CANDIDATES[1]}"

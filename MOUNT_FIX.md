@@ -2,7 +2,59 @@
 
 > **✨ 通用性说明**：此修复适用于 **1-3 个数据盘** 的所有配置场景。脚本会自动检测可用磁盘并按优先级分配（accounts > ledger > snapshot），无需手动配置。
 
-## 🔍 问题分析
+## 🚨 优先级错误问题（重要）
+
+### 症状
+
+如果您运行 `bash verify-mounts.sh` 看到类似以下情况：
+
+```
+⚠️  Accounts 未独立挂载（在系统盘上）
+✓ Ledger 已独立挂载到 /dev/nvme0n1
+✓ Snapshot 已独立挂载到 /dev/nvme1n1
+```
+
+**这是严重的优先级错误！** Accounts 才是最需要高性能 NVMe 的目录，但它却在系统盘上，而性能需求较低的 Ledger/Snapshot 反而占用了 NVMe。
+
+### 快速修复
+
+```bash
+# 1. 停止 Solana 节点（如果正在运行）
+systemctl stop sol
+
+# 2. 运行优先级修复脚本
+cd /root/solana-rpc-install
+bash fix-mount-priority.sh
+
+# 3. 验证修复结果
+bash verify-mounts.sh
+
+# 4. 启动节点
+systemctl start sol
+```
+
+### 为什么会出现这个问题？
+
+可能原因：
+1. 使用了旧版本脚本，磁盘分配逻辑不完善
+2. 手动挂载时顺序错误
+3. 从其他配置迁移时未遵循优先级规则
+
+### 修复脚本做了什么？
+
+`fix-mount-priority.sh` 会：
+1. ✅ 安全检查：确认 Solana 节点已停止
+2. ✅ 卸载所有 Solana 目录
+3. ✅ 清理 `/etc/fstab` 配置
+4. ✅ 按正确优先级重新分配：
+   - 第1块 NVMe → Accounts（最高性能需求）
+   - 第2块 NVMe → Ledger（中等性能需求）
+   - 第3块 NVMe → Snapshot（低性能需求）
+5. ✅ 更新持久化配置
+
+---
+
+## 🔍 其他挂载问题分析
 
 ### 发现的问题
 
