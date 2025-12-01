@@ -44,7 +44,11 @@
 **Minimum Configuration:**
 - **CPU**: AMD Ryzen 9 9950X (or equivalent)
 - **RAM**: 128 GB minimum (256 GB recommended)
-- **Storage**: 2-3x NVMe SSDs (1TB system + 2TB accounts OR combined 2TB+ accounts/ledger)
+- **Storage**: 1-3x NVMe SSDs (flexible configuration, script auto-adapts)
+  - **1 disk**: System disk only (basic setup)
+  - **2 disks**: System + 1 data disk (recommended, best cost-performance)
+  - **3 disks**: System + 2 data disks (optimal performance)
+  - **4+ disks**: System + 3 data disks (accounts/ledger/snapshot separated)
 - **OS**: Ubuntu 20.04/22.04
 - **Network**: High-bandwidth connection (1 Gbps+)
 
