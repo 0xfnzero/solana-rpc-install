@@ -45,32 +45,76 @@ has_fs() { blkid -o value -s TYPE "$1" &>/dev/null; }
 
 mount_one() {
   local dev="$1"; local target="$2"
+
+  # 检查设备是否已挂载
   if is_mounted_dev "$dev"; then
-    echo "   - 已挂载：$dev -> $(findmnt -no TARGET "$dev")，跳过"; return 0
+    local current_mount=$(findmnt -no TARGET "$dev")
+    # 如果已挂载到目标位置，跳过
+    if [[ "$current_mount" == "$target" ]]; then
+      echo "   - 已正确挂载：$dev -> $target，跳过"
+      return 0
+    fi
+    # 如果挂载到了错误的位置，先卸载
+    echo "   - 检测到 $dev 挂载在错误位置：$current_mount"
+    echo "   - 卸载 $dev ..."
+    umount "$dev" || {
+      echo "   ⚠️  无法卸载 $dev，可能正在使用。请手动检查并卸载后重新运行脚本"
+      return 1
+    }
+    # 清理 fstab 中的旧配置
+    if grep -q "$current_mount" /etc/fstab 2>/dev/null; then
+      echo "   - 清理 fstab 中的旧挂载配置：$current_mount"
+      sed -i "\|$current_mount|d" /etc/fstab
+    fi
   fi
+
+  # 如果没有文件系统，创建 ext4
   if ! has_fs "$dev"; then
-    echo "   - 为 $dev 创建 ext4 文件系统（首次使用）"; mkfs.ext4 -F "$dev"
+    echo "   - 为 $dev 创建 ext4 文件系统（首次使用）"
+    mkfs.ext4 -F "$dev"
   fi
+
+  # 创建目标目录并挂载
   mkdir -p "$target"
   mount -o defaults "$dev" "$target"
-  if ! grep -qE "^[^ ]+ +$target " /etc/fstab; then
-    echo "$dev $target ext4 defaults 0 0" >> /etc/fstab
+
+  # 更新 fstab 配置（先清理旧配置，再添加新配置）
+  if grep -qE "^${dev} " /etc/fstab 2>/dev/null; then
+    echo "   - 更新 fstab 中的配置"
+    sed -i "\|^${dev} |d" /etc/fstab
   fi
-  echo "   - 挂载完成：$dev -> $target"
+  echo "$dev $target ext4 defaults 0 0" >> /etc/fstab
+
+  echo "   - ✅ 挂载完成：$dev -> $target"
 }
 
-# 收集候选设备（排除系统盘；对有分区的磁盘选择最大未挂载分区）
+# 辅助函数：检查设备是否已正确挂载到 Solana 数据目录
+is_correctly_mounted() {
+  local dev="$1"
+  if ! is_mounted_dev "$dev"; then
+    return 1  # 未挂载
+  fi
+  local current_mount=$(findmnt -no TARGET "$dev")
+  # 检查是否挂载到 accounts、ledger 或 snapshot 目录
+  [[ "$current_mount" == "$ACCOUNTS" || "$current_mount" == "$LEDGER" || "$current_mount" == "$SNAPSHOT" ]]
+}
+
+# 收集候选设备（排除系统盘；包括错误挂载的设备）
 CANDIDATES=()
 for d in "${MAP_DISKS[@]}"; do
   disk="/dev/$d"
   [[ -n "$ROOT_DISK" && "$disk" == "$ROOT_DISK" ]] && continue
   parts=($(lsblk -n -o NAME,TYPE "$disk" | awk '$2=="part"{gsub(/^[├─└│ ]*/, "", $1); print $1}'))
   if ((${#parts[@]}==0)); then
-    is_mounted_dev "$disk" || CANDIDATES+=("$disk")
+    # 整盘：如果未挂载或挂载到错误位置，加入候选
+    is_correctly_mounted "$disk" || CANDIDATES+=("$disk")
   else
+    # 有分区：选择最大的可用分区（未挂载或挂载到错误位置）
     best=""; best_size=0
     for p in "${parts[@]}"; do
-      part="/dev/$p"; is_mounted_dev "$part" && continue
+      part="/dev/$p"
+      # 跳过已正确挂载到 Solana 目录的分区
+      is_correctly_mounted "$part" && continue
       size=$(lsblk -bno SIZE "$part")
       (( size > best_size )) && { best="$part"; best_size=$size; }
     done
