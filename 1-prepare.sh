@@ -88,100 +88,117 @@ mount_one() {
   echo "   - ✅ 挂载完成：$dev -> $target"
 }
 
-# 辅助函数：检查设备是否已正确挂载到 Solana 数据目录
-is_correctly_mounted() {
-  local dev="$1"
-  if ! is_mounted_dev "$dev"; then
-    return 1  # 未挂载
-  fi
-  local current_mount=$(findmnt -no TARGET "$dev")
-  # 检查是否挂载到 accounts、ledger 或 snapshot 目录
-  [[ "$current_mount" == "$ACCOUNTS" || "$current_mount" == "$LEDGER" || "$current_mount" == "$SNAPSHOT" ]]
-}
-
-# 收集候选设备（排除系统盘；包括错误挂载的设备）
-CANDIDATES=()
+# ---------- 步骤 2.1: 收集所有可用数据盘 ----------
+echo "==> 2.1) 收集可用数据盘..."
+AVAILABLE_DISKS=()
 for d in "${MAP_DISKS[@]}"; do
   disk="/dev/$d"
   [[ -n "$ROOT_DISK" && "$disk" == "$ROOT_DISK" ]] && continue
   parts=($(lsblk -n -o NAME,TYPE "$disk" | awk '$2=="part"{gsub(/^[├─└│ ]*/, "", $1); print $1}'))
   if ((${#parts[@]}==0)); then
-    # 整盘：如果未挂载或挂载到错误位置，加入候选
-    is_correctly_mounted "$disk" || CANDIDATES+=("$disk")
+    # 整盘无分区
+    AVAILABLE_DISKS+=("$disk")
+    echo "   - 可用数据盘：$disk (整盘)"
   else
-    # 有分区：选择最大的可用分区（未挂载或挂载到错误位置）
+    # 有分区，选择最大分区
     best=""; best_size=0
     for p in "${parts[@]}"; do
       part="/dev/$p"
-      # 跳过已正确挂载到 Solana 目录的分区
-      is_correctly_mounted "$part" && continue
       size=$(lsblk -bno SIZE "$part")
       (( size > best_size )) && { best="$part"; best_size=$size; }
     done
-    [[ -n "$best" ]] && CANDIDATES+=("$best")
+    if [[ -n "$best" ]]; then
+      AVAILABLE_DISKS+=("$best")
+      echo "   - 可用数据盘：$best (最大分区)"
+    fi
   fi
 done
 
-echo "   候选数据设备：${CANDIDATES[*]:-"<无>"}"
+if ((${#AVAILABLE_DISKS[@]}==0)); then
+    echo "   - 未检测到可用数据盘，所有目录将使用系统盘"
+fi
 
-# 检查当前挂载状态，验证优先级
 echo ""
-echo "==> 2.1) 检查当前 Solana 目录挂载状态..."
-CURRENT_ACC_DEV=$(df -P "$ACCOUNTS" 2>/dev/null | tail -1 | awk '{print $1}')
-CURRENT_LED_DEV=$(df -P "$LEDGER" 2>/dev/null | tail -1 | awk '{print $1}')
-CURRENT_SNAP_DEV=$(df -P "$SNAPSHOT" 2>/dev/null | tail -1 | awk '{print $1}')
-
+echo "==> 2.2) 检查当前挂载状态..."
 CURRENT_ACC_MOUNT=$(df -P "$ACCOUNTS" 2>/dev/null | tail -1 | awk '{print $6}')
 CURRENT_LED_MOUNT=$(df -P "$LEDGER" 2>/dev/null | tail -1 | awk '{print $6}')
 CURRENT_SNAP_MOUNT=$(df -P "$SNAPSHOT" 2>/dev/null | tail -1 | awk '{print $6}')
 
-# 检测优先级错误
-PRIORITY_ERROR=false
-if [[ "$CURRENT_ACC_MOUNT" != "$ACCOUNTS" && "$CURRENT_LED_MOUNT" == "$LEDGER" ]]; then
-    echo "   ⚠️  检测到优先级错误："
-    echo "   - Accounts 未独立挂载（在 $CURRENT_ACC_MOUNT 上）"
-    echo "   - Ledger 已独立挂载（$CURRENT_LED_DEV -> $LEDGER）"
-    echo "   - 这违反了优先级规则：Accounts (最高) > Ledger (中等)"
-    PRIORITY_ERROR=true
+CURRENT_ACC_DEV=$(df -P "$ACCOUNTS" 2>/dev/null | tail -1 | awk '{print $1}')
+CURRENT_LED_DEV=$(df -P "$LEDGER" 2>/dev/null | tail -1 | awk '{print $1}')
+CURRENT_SNAP_DEV=$(df -P "$SNAPSHOT" 2>/dev/null | tail -1 | awk '{print $1}')
+
+echo "   当前状态："
+echo "   - Accounts: ${CURRENT_ACC_DEV} -> ${CURRENT_ACC_MOUNT}"
+echo "   - Ledger:   ${CURRENT_LED_DEV} -> ${CURRENT_LED_MOUNT}"
+echo "   - Snapshot: ${CURRENT_SNAP_DEV} -> ${CURRENT_SNAP_MOUNT}"
+
+# ---------- 步骤 2.3: 检测并修复优先级错误 ----------
+echo ""
+echo "==> 2.3) 检测挂载优先级..."
+NEED_FIX=false
+
+# 检测优先级错误：accounts 未独立挂载，但 ledger 或 snapshot 独立挂载了
+if [[ "$CURRENT_ACC_MOUNT" != "$ACCOUNTS" ]]; then
+    if [[ "$CURRENT_LED_MOUNT" == "$LEDGER" ]] || [[ "$CURRENT_SNAP_MOUNT" == "$SNAPSHOT" ]]; then
+        echo "   ⚠️  检测到优先级错误："
+        echo "   - Accounts 应该优先获得数据盘（性能需求最高）"
+        echo "   - 当前 Accounts 在系统盘上，而低优先级目录占用了数据盘"
+        NEED_FIX=true
+    fi
 fi
 
-if [[ "$CURRENT_ACC_MOUNT" != "$ACCOUNTS" && "$CURRENT_SNAP_MOUNT" == "$SNAPSHOT" ]]; then
-    echo "   ⚠️  检测到优先级错误："
-    echo "   - Accounts 未独立挂载（在 $CURRENT_ACC_MOUNT 上）"
-    echo "   - Snapshot 已独立挂载（$CURRENT_SNAP_DEV -> $SNAPSHOT）"
-    echo "   - 这违反了优先级规则：Accounts (最高) > Snapshot (最低)"
-    PRIORITY_ERROR=true
+if $NEED_FIX && ((${#AVAILABLE_DISKS[@]}>0)); then
+    echo ""
+    echo "   🔧 自动修复优先级..."
+
+    # 卸载所有 Solana 数据目录（从子目录开始，避免嵌套问题）
+    for dir in "$SNAPSHOT" "$LEDGER" "$ACCOUNTS"; do
+        if mountpoint -q "$dir" 2>/dev/null; then
+            echo "   - 卸载：$dir"
+            umount "$dir" || {
+                echo "   ⚠️  无法卸载 $dir，可能有进程正在使用"
+                echo "   请先停止相关服务后重新运行脚本"
+                exit 1
+            }
+        fi
+    done
+
+    # 清理 fstab 中的旧配置
+    echo "   - 清理 /etc/fstab 旧配置"
+    sed -i "\|$ACCOUNTS|d" /etc/fstab 2>/dev/null || true
+    sed -i "\|$LEDGER|d" /etc/fstab 2>/dev/null || true
+    sed -i "\|$SNAPSHOT|d" /etc/fstab 2>/dev/null || true
+
+    echo "   ✓ 优先级错误已清理，准备重新挂载"
+    echo ""
 fi
 
-if $PRIORITY_ERROR; then
-    echo ""
-    echo "   ❌ 无法自动修复优先级错误（避免数据丢失风险）"
-    echo ""
-    echo "   📋 推荐修复步骤："
-    echo "   1. 停止 Solana 节点（如果正在运行）：systemctl stop sol"
-    echo "   2. 运行优先级修复脚本：bash $SCRIPT_DIR/fix-mount-priority.sh"
-    echo "   3. 验证修复结果：bash $SCRIPT_DIR/verify-mounts.sh"
-    echo ""
-    echo "   或者手动调整（高级用户）："
-    echo "   1. 卸载 ledger 和 snapshot"
-    echo "   2. 重新按优先级挂载：accounts -> ledger -> snapshot"
-    echo "   3. 更新 /etc/fstab 配置"
-    echo ""
-    exit 1
-fi
-
-echo "   ✓ 挂载优先级检查通过"
+# ---------- 步骤 2.4: 按优先级挂载 ----------
+echo "==> 2.4) 按优先级挂载数据盘..."
+echo "   优先级：Accounts (最高) > Ledger (中等) > Snapshot (最低)"
 echo ""
 
-# 分配设备
-ASSIGNED_ACC=""; ASSIGNED_LED=""; ASSIGNED_SNAP=""
-((${#CANDIDATES[@]}>0)) && ASSIGNED_ACC="${CANDIDATES[0]}"
-((${#CANDIDATES[@]}>1)) && ASSIGNED_LED="${CANDIDATES[1]}"
-((${#CANDIDATES[@]}>2)) && ASSIGNED_SNAP="${CANDIDATES[2]}"
+# 优先级 1: Accounts
+if ((${#AVAILABLE_DISKS[@]} >= 1)); then
+    mount_one "${AVAILABLE_DISKS[0]}" "$ACCOUNTS" || echo "   ⚠️  挂载 accounts 失败"
+else
+    echo "   - Accounts: 使用系统盘（无可用数据盘）"
+fi
 
-[[ -n "$ASSIGNED_ACC"  ]] && mount_one "$ASSIGNED_ACC"  "$ACCOUNTS"  || echo "   - accounts 使用系统盘：$ACCOUNTS"
-[[ -n "$ASSIGNED_LED"  ]] && mount_one "$ASSIGNED_LED"  "$LEDGER"    || echo "   - ledger  使用系统盘：$LEDGER"
-[[ -n "$ASSIGNED_SNAP" ]] && mount_one "$ASSIGNED_SNAP" "$SNAPSHOT"  || echo "   - snapshot使用系统盘：$SNAPSHOT"
+# 优先级 2: Ledger
+if ((${#AVAILABLE_DISKS[@]} >= 2)); then
+    mount_one "${AVAILABLE_DISKS[1]}" "$LEDGER" || echo "   ⚠️  挂载 ledger 失败"
+else
+    echo "   - Ledger: 使用系统盘"
+fi
+
+# 优先级 3: Snapshot
+if ((${#AVAILABLE_DISKS[@]} >= 3)); then
+    mount_one "${AVAILABLE_DISKS[2]}" "$SNAPSHOT" || echo "   ⚠️  挂载 snapshot 失败"
+else
+    echo "   - Snapshot: 使用系统盘"
+fi
 
 echo ""
 echo "==> 3) 系统优化（极限网络性能）..."
