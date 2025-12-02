@@ -54,33 +54,8 @@
 
 ## 🚀 快速开始
 
-### 选择您的安装方式
+**三步安装（源码编译）**
 
-**方案 A: Jito 预编译版本 (⚡ 推荐 - 2-3 分钟)**
-```bash
-# 切换到 root 用户
-sudo su -
-
-# 克隆仓库到 /root 目录
-cd /root
-git clone https://github.com/0xfnzero/solana-rpc-install.git
-cd solana-rpc-install
-
-# 步骤 1: 挂载磁盘 + 系统优化
-bash 1-prepare.sh
-
-# (可选) 验证挂载配置
-bash verify-mounts.sh
-
-# 步骤 2: 安装 Jito Solana (预编译版本, 2-3 分钟)
-bash 2-install-solana-jito.sh
-# 提示时输入版本号 (例如: v3.0.11)
-
-# 步骤 3: 下载快照并启动节点
-bash 3-start.sh
-```
-
-**方案 B: Jito 源码编译 (🔧 高级用户 - 15-30 分钟)**
 ```bash
 # 切换到 root 用户
 sudo su -
@@ -105,9 +80,8 @@ bash 2-install-jito-validator.sh
 bash 3-start.sh
 ```
 
-> **💡 如何选择安装方式？**
-> - **Jito 预编译版本**: 安装快速（2-3 分钟），包含 MEV 支持，生产就绪。推荐大多数用户使用。
-> - **Jito 源码编译**: 官方 Jito 构建（15-30 分钟），100% 符合 Jito Foundation 标准，增强版本验证和网络容错。
+> **⚠️ 为什么只有源码编译？**
+> Jito 预编译版本只包含 CLI 工具，**缺少 RPC 节点所需的 validator 二进制文件**。源码编译确保您获得完整的 `agave-validator` 二进制文件和完整 MEV 支持。
 
 ## ⚠️ 重要：内存管理详解 (128GB 系统必读)
 
@@ -213,9 +187,10 @@ bash /root/performance-monitor.sh snapshot
 
 ### 🚀 部署特性
 
-- 📦 **双安装选项**:
-  - ⚡ Jito 预编译二进制文件 (2-3 分钟, MEV 就绪)
-  - 🔧 Jito 源码编译 (15-30 分钟, 100% 官方标准)
+- 📦 **源码编译安装**:
+  - 🔧 从官方 GitHub 构建 Jito Solana (15-30 分钟)
+  - ✅ 完整的 validator 二进制文件和完整 MEV 支持
+  - 🎯 100% 符合 Jito Foundation 官方标准
 - 🧠 **智能配置选择**: 自动检测系统 RAM 并选择最优 validator 配置
   - TIER 1 (128GB): 保守配置，适用于 128-159GB 系统
   - TIER 2 (192GB): 平衡配置，适用于 192-223GB 系统
@@ -249,10 +224,10 @@ bash /root/performance-monitor.sh snapshot
 ┌─────────────────────────────────────────────────────────┐
 │                   Solana RPC 节点堆栈                     │
 ├─────────────────────────────────────────────────────────┤
-│  Solana 验证者 (v3.0.x)                                  │
-│  ├─ 安装选项:                                            │
-│  │  • Jito 预编译版本 (MEV 就绪, 2-3 分钟)              │
-│  │  • Agave 源码构建 (自定义, 20-40 分钟)                │
+│  Jito Solana 验证者 (v3.0.x)                            │
+│  ├─ 安装方式: 从 GitHub 源码编译                         │
+│  │  • agave-validator 完整 MEV 支持                     │
+│  │  • 100% 符合 Jito Foundation 标准 (15-30 分钟)      │
 │  ├─ Yellowstone gRPC 插件 v10.0.1 (数据流)              │
 │  ├─ RPC HTTP/WebSocket (端口 8899/8900)                │
 │  └─ 账户 & 账本 (优化的 RocksDB)                        │

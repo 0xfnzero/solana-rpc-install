@@ -54,33 +54,8 @@
 
 ## 🚀 Quick Start
 
-### Choose Your Installation Method
+**Three-Step Installation (Source Compilation)**
 
-**Option A: Jito Precompiled (⚡ Recommended - 2-3 minutes)**
-```bash
-# Switch to root user
-sudo su -
-
-# Clone repository to /root
-cd /root
-git clone https://github.com/0xfnzero/solana-rpc-install.git
-cd solana-rpc-install
-
-# Step 1: Mount disks + System optimization
-bash 1-prepare.sh
-
-# (Optional) Verify mount configuration
-bash verify-mounts.sh
-
-# Step 2: Install Jito Solana (precompiled, 2-3 minutes)
-bash 2-install-solana-jito.sh
-# Enter version when prompted (e.g., v3.0.11)
-
-# Step 3: Download snapshot and start node
-bash 3-start.sh
-```
-
-**Option B: Jito Source Compilation (🔧 Advanced - 15-30 minutes)**
 ```bash
 # Switch to root user
 sudo su -
@@ -105,9 +80,8 @@ bash 2-install-jito-validator.sh
 bash 3-start.sh
 ```
 
-> **💡 Which method to choose?**
-> - **Jito Precompiled**: Fast installation (2-3 min), includes MEV support, production-ready. Recommended for most users.
-> - **Jito Source Compilation**: Official Jito build (15-30 min), 100% compliant with Jito Foundation standards, enhanced version verification with network resilience.
+> **⚠️ Why Source Compilation Only?**
+> Jito precompiled releases contain CLI tools but **lack the validator binary** required for RPC nodes. Source compilation ensures you get the complete `agave-validator` binary with full MEV support.
 
 ## ⚠️ Critical: Memory Management Details (Required for 128GB Systems)
 
@@ -213,9 +187,10 @@ All configurations are based on **proven production deployments** with thousands
 
 ### 🚀 Deployment Features
 
-- 📦 **Dual Installation Options**:
-  - ⚡ Jito precompiled binaries (2-3 min, MEV-ready)
-  - 🔧 Jito source compilation (15-30 min, 100% official compliance)
+- 📦 **Source Compilation Installation**:
+  - 🔧 Jito Solana from official GitHub (15-30 min)
+  - ✅ Complete validator binary with full MEV support
+  - 🎯 100% compliant with Jito Foundation standards
 - 🧠 **Intelligent Configuration Selection**: Auto-detects system RAM and selects optimal validator configuration
   - TIER 1 (128GB): Conservative settings for 128-159GB systems
   - TIER 2 (192GB): Balanced configuration for 192-223GB systems
@@ -249,10 +224,10 @@ All configurations are based on **proven production deployments** with thousands
 ┌─────────────────────────────────────────────────────────┐
 │                   Solana RPC Node Stack                  │
 ├─────────────────────────────────────────────────────────┤
-│  Solana Validator (v3.0.x)                              │
-│  ├─ Installation Options:                               │
-│  │  • Jito precompiled (MEV-ready, 2-3 min)             │
-│  │  • Agave source build (custom, 20-40 min)            │
+│  Jito Solana Validator (v3.0.x)                         │
+│  ├─ Installation: Source compilation from GitHub        │
+│  │  • agave-validator with full MEV support             │
+│  │  • 100% Jito Foundation compliant (15-30 min)        │
 │  ├─ Yellowstone gRPC Plugin v10.0.1 (Data streaming)   │
 │  ├─ RPC HTTP/WebSocket (Port 8899/8900)                 │
 │  └─ Accounts & Ledger (Optimized RocksDB)               │
