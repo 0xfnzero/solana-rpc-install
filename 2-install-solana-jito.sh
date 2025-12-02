@@ -46,29 +46,40 @@ echo "==> 0) 验证 Jito Solana 版本 ..."
 
 # Interactive version selection and validation
 while true; do
-  read -p "请输入 Jito Solana 版本号 (例如 v3.0.11, v3.0.10): " SOLANA_VERSION
+  echo ""
+  echo "📝 输入说明: 只需输入版本号 (如 v3.0.12)，脚本会自动添加 -jito 后缀"
+  read -p "请输入 Jito Solana 版本号 (例如 v3.0.12, v3.0.11): " SOLANA_VERSION
 
   # Validate version format
   if [[ ! "$SOLANA_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "[错误] 版本号格式不正确，应为 vX.Y.Z 格式 (例如 v3.0.11)"
+    echo "       注意: 只输入版本号，不要包含 -jito 后缀"
     read -p "是否重新输入版本号？(y/n): " retry
     [[ "$retry" != "y" && "$retry" != "Y" ]] && exit 1
     continue
   fi
 
   # Construct Jito precompiled download URL
-  JITO_RELEASE_URL="https://github.com/jito-foundation/jito-solana/releases/download/${SOLANA_VERSION}-jito/solana-release-x86_64-unknown-linux-gnu.tar.bz2"
+  JITO_TAG="${SOLANA_VERSION}-jito"
+  JITO_RELEASE_URL="https://github.com/jito-foundation/jito-solana/releases/download/${JITO_TAG}/solana-release-x86_64-unknown-linux-gnu.tar.bz2"
 
-  echo "正在验证 Jito Solana 版本 ${SOLANA_VERSION}-jito ..."
+  echo "正在验证 Jito Solana 版本 ${JITO_TAG}..."
   echo "下载地址: ${JITO_RELEASE_URL}"
 
   # Try to verify the precompiled tarball exists
   if wget --spider "$JITO_RELEASE_URL" 2>/dev/null; then
-    echo "✓ 版本 ${SOLANA_VERSION}-jito 验证成功，继续安装流程..."
+    echo "✓ 版本 ${JITO_TAG} 验证成功，继续安装流程..."
     break
   else
-    echo "[错误] 版本 ${SOLANA_VERSION}-jito 不存在或下载地址不可用"
-    echo "请访问 https://github.com/jito-foundation/jito-solana/releases 查看可用版本"
+    echo "[错误] 版本 ${JITO_TAG} 不存在或下载地址不可用"
+    echo ""
+    echo "常用版本参考 (只输入版本号部分):"
+    echo "  - v3.0.12, v3.0.11 (v3.0.x 系列，推荐 v3.0.12)"
+    echo "  - v3.1.4, v3.1.3, v3.1.2 (v3.1.x 系列，推荐 v3.1.4)"
+    echo ""
+    echo "查看所有版本 (releases 页面显示完整格式如 v3.0.11-jito，您只需输入 v3.0.11):"
+    echo "  https://github.com/jito-foundation/jito-solana/releases"
+    echo ""
     read -p "是否重新输入版本号？(y/n): " retry
     [[ "$retry" != "y" && "$retry" != "Y" ]] && exit 1
   fi

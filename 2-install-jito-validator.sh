@@ -43,11 +43,14 @@ echo ""
 echo "==> 0) 选择 Jito Solana 版本..."
 
 while true; do
-  read -p "请输入 Jito Solana 版本号 (例如 v3.0.11, v3.0.10): " SOLANA_VERSION
+  echo ""
+  echo "📝 输入说明: 只需输入版本号 (如 v3.0.12)，脚本会自动添加 -jito 后缀"
+  read -p "请输入 Jito Solana 版本号 (例如 v3.0.12, v3.0.11): " SOLANA_VERSION
 
   # Validate version format
   if [[ ! "$SOLANA_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "[错误] 版本号格式不正确，应为 vX.Y.Z 格式 (例如 v3.0.11)"
+    echo "       注意: 只输入版本号，不要包含 -jito 后缀"
     read -p "是否重新输入版本号？(y/n): " retry
     [[ "$retry" != "y" && "$retry" != "Y" ]] && exit 1
     continue
@@ -71,8 +74,12 @@ while true; do
     echo "  2. GitHub API 访问受限"
     echo "  3. 版本不存在"
     echo ""
-    echo "常用版本: v3.0.11, v3.0.12, v3.1.2, v3.1.3"
-    echo "查看所有版本: https://github.com/jito-foundation/jito-solana/tags"
+    echo "常用版本参考 (只输入版本号部分):"
+    echo "  - v3.0.12, v3.0.11 (v3.0.x 系列，推荐 v3.0.12)"
+    echo "  - v3.1.4, v3.1.3, v3.1.2 (v3.1.x 系列，推荐 v3.1.4)"
+    echo ""
+    echo "查看所有版本 (tags 页面显示完整格式如 v3.0.11-jito，您只需输入 v3.0.11):"
+    echo "  https://github.com/jito-foundation/jito-solana/tags"
     echo ""
     read -p "是否跳过验证继续安装？(y/n): " skip_verify
     if [[ "$skip_verify" == "y" || "$skip_verify" == "Y" ]]; then
