@@ -58,14 +58,30 @@ while true; do
   GITHUB_API_URL="https://api.github.com/repos/jito-foundation/jito-solana/tags"
 
   echo "正在验证版本 ${JITO_TAG}..."
-  if curl -s "$GITHUB_API_URL" | grep -q "\"name\": \"$JITO_TAG\""; then
+
+  # Try to verify version with timeout and better error handling
+  if timeout 10 curl -s --connect-timeout 5 "$GITHUB_API_URL" 2>/dev/null | grep -q "\"name\": \"$JITO_TAG\""; then
     echo "✓ 版本 ${JITO_TAG} 验证成功"
     break
   else
-    echo "[错误] 版本 ${JITO_TAG} 不存在"
-    echo "访问 https://github.com/jito-foundation/jito-solana/tags 查看可用版本"
-    read -p "是否重新输入版本号？(y/n): " retry
-    [[ "$retry" != "y" && "$retry" != "Y" ]] && exit 1
+    echo "⚠️  无法验证版本 ${JITO_TAG}"
+    echo ""
+    echo "可能的原因："
+    echo "  1. 网络连接问题"
+    echo "  2. GitHub API 访问受限"
+    echo "  3. 版本不存在"
+    echo ""
+    echo "常用版本: v3.0.11, v3.0.12, v3.1.2, v3.1.3"
+    echo "查看所有版本: https://github.com/jito-foundation/jito-solana/tags"
+    echo ""
+    read -p "是否跳过验证继续安装？(y/n): " skip_verify
+    if [[ "$skip_verify" == "y" || "$skip_verify" == "Y" ]]; then
+      echo "⚠️  跳过版本验证，继续安装 ${JITO_TAG}"
+      break
+    else
+      read -p "是否重新输入版本号？(y/n): " retry
+      [[ "$retry" != "y" && "$retry" != "Y" ]] && exit 1
+    fi
   fi
 done
 
@@ -211,7 +227,8 @@ cp -f "$SCRIPT_DIR/validator-128g.sh" "$BIN/validator-128g.sh"
 cp -f "$SCRIPT_DIR/validator-192g.sh" "$BIN/validator-192g.sh"
 cp -f "$SCRIPT_DIR/validator-256g.sh" "$BIN/validator-256g.sh"
 cp -f "$SCRIPT_DIR/validator-512g.sh" "$BIN/validator-512g.sh"
-chmod +x "$BIN"/validator*.sh
+cp -f "$SCRIPT_DIR/select-validator.sh" "$BIN/select-validator.sh"
+chmod +x "$BIN"/validator*.sh "$BIN/select-validator.sh"
 
 TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
 if [[ $TOTAL_MEM_GB -lt 160 ]]; then

@@ -80,7 +80,7 @@ bash 2-install-solana-jito.sh
 bash 3-start.sh
 ```
 
-**Option B: Source Compilation (🔧 Advanced - 20-40 minutes)**
+**Option B: Jito Source Compilation (🔧 Advanced - 15-30 minutes)**
 ```bash
 # Switch to root user
 sudo su -
@@ -96,9 +96,10 @@ bash 1-prepare.sh
 # (Optional) Verify mount configuration
 bash verify-mounts.sh
 
-# Step 2: Build Solana from source (20-40 minutes)
-bash 2-install-solana.sh
-# Enter version when prompted (e.g., v3.0.10)
+# Step 2: Build Jito Solana from source (15-30 minutes)
+bash 2-install-jito-validator.sh
+# Enter version when prompted (e.g., v3.0.11)
+# Enhanced with skip option for network issues
 
 # Step 3: Download snapshot and start node
 bash 3-start.sh
@@ -106,7 +107,7 @@ bash 3-start.sh
 
 > **💡 Which method to choose?**
 > - **Jito Precompiled**: Fast installation (2-3 min), includes MEV support, production-ready. Recommended for most users.
-> - **Source Compilation**: Full control, custom build options, for developers and advanced users (20-40 min).
+> - **Jito Source Compilation**: Official Jito build (15-30 min), 100% compliant with Jito Foundation standards, enhanced version verification with network resilience.
 
 ## ⚠️ Critical: Memory Management Details (Required for 128GB Systems)
 
@@ -214,9 +215,15 @@ All configurations are based on **proven production deployments** with thousands
 
 - 📦 **Dual Installation Options**:
   - ⚡ Jito precompiled binaries (2-3 min, MEV-ready)
-  - 🔧 Source compilation from GitHub (20-40 min, full control)
+  - 🔧 Jito source compilation (15-30 min, 100% official compliance)
+- 🧠 **Intelligent Configuration Selection**: Auto-detects system RAM and selects optimal validator configuration
+  - TIER 1 (128GB): Conservative settings for 128-159GB systems
+  - TIER 2 (192GB): Balanced configuration for 192-223GB systems
+  - TIER 3 (256GB): High-performance for 256-383GB systems
+  - TIER 4 (512GB+): Maximum capacity for enterprise deployments
 - 🔄 **Automatic Disk Management**: Smart disk detection and mounting
-- 🛡️ **Production Ready**: Systemd service with memory limits and OOM protection
+- 🛡️ **Production Ready**: Systemd service with dynamic memory limits and OOM protection
+- 🌐 **Network Resilience**: Enhanced version verification with graceful degradation
 - 📊 **Monitoring Tools**: Performance tracking and health checks included
 
 ## 🔌 Network Ports

@@ -220,7 +220,8 @@ cp -f "$SCRIPT_DIR/validator-128g.sh" "$BIN/validator-128g.sh"
 cp -f "$SCRIPT_DIR/validator-192g.sh" "$BIN/validator-192g.sh"
 cp -f "$SCRIPT_DIR/validator-256g.sh" "$BIN/validator-256g.sh"
 cp -f "$SCRIPT_DIR/validator-512g.sh" "$BIN/validator-512g.sh"
-chmod +x "$BIN"/validator*.sh
+cp -f "$SCRIPT_DIR/select-validator.sh" "$BIN/select-validator.sh"
+chmod +x "$BIN"/validator*.sh "$BIN/select-validator.sh"
 
 TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
 if [[ $TOTAL_MEM_GB -lt 160 ]]; then

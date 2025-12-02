@@ -21,11 +21,14 @@ Environment="RUST_LOG=warn"
 Environment="RUST_BACKTRACE=1"
 # Prevent OOM killer from targeting this process
 OOMScoreAdjust=-900
-# Memory limits (auto-calculated based on system RAM)
-# Low memory systems (<160GB): Very loose limits to prevent crashes
-# High memory systems (>=160GB): Standard production limits
-MemoryHigh=120G
-MemoryMax=125G
+# Memory limits (dynamically adjusted based on system RAM tier)
+# TIER 1 (128GB): MemoryHigh=100G, MemoryMax=115G
+# TIER 2 (192GB): MemoryHigh=150G, MemoryMax=175G
+# TIER 3 (256GB): MemoryHigh=200G, MemoryMax=230G
+# TIER 4 (512GB+): MemoryHigh=400G, MemoryMax=460G
+# Note: ExecStartPre will auto-select appropriate limits
+MemoryHigh=200G
+MemoryMax=230G
 # CPU affinity and scheduling
 Nice=-10
 IOSchedulingClass=realtime
@@ -38,8 +41,8 @@ KillMode=mixed
 KillSignal=SIGINT
 # Working directory
 WorkingDirectory=/root/sol
-# Startup command
-ExecStart=/root/sol/bin/validator.sh
+# Startup command (auto-selects appropriate validator script based on RAM)
+ExecStart=/bin/bash -c '/root/sol/bin/select-validator.sh'
 # Pre-start validation
 ExecStartPre=/bin/bash -c 'test -f /root/sol/bin/validator-keypair.json'
 ExecStartPre=/bin/bash -c 'test -d /root/sol/ledger'
