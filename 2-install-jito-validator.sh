@@ -63,23 +63,24 @@ while true; do
   echo "正在验证版本 ${JITO_TAG}..."
 
   # Try to verify version with timeout and better error handling
-  if timeout 10 curl -s --connect-timeout 5 "$GITHUB_API_URL" 2>/dev/null | grep -q "\"name\": \"$JITO_TAG\""; then
+  # Use grep with fixed strings for more reliable matching
+  if timeout 10 curl -s --connect-timeout 5 "$GITHUB_API_URL" 2>/dev/null | grep -F "\"name\": \"$JITO_TAG\"" >/dev/null 2>&1; then
     echo "✓ 版本 ${JITO_TAG} 验证成功"
     break
   else
     echo "⚠️  无法验证版本 ${JITO_TAG}"
     echo ""
     echo "可能的原因："
-    echo "  1. 网络连接问题"
-    echo "  2. GitHub API 访问受限"
-    echo "  3. 版本不存在"
+    echo "  1. 网络连接问题或 GitHub API 访问受限"
+    echo "  2. 版本不存在"
     echo ""
-    echo "常用版本参考 (只输入版本号部分):"
-    echo "  - v3.0.12, v3.0.11 (v3.0.x 系列，推荐 v3.0.12)"
-    echo "  - v3.1.4, v3.1.3, v3.1.2 (v3.1.x 系列，推荐 v3.1.4)"
+    echo "📋 常用版本参考 (只输入版本号部分):"
+    echo "  v3.0.x 系列: v3.0.12, v3.0.11, v3.0.10"
+    echo "  v3.1.x 系列: v3.1.3, v3.1.2"
     echo ""
-    echo "查看所有版本 (tags 页面显示完整格式如 v3.0.11-jito，您只需输入 v3.0.11):"
+    echo "🔍 查看所有版本:"
     echo "  https://github.com/jito-foundation/jito-solana/tags"
+    echo "  (页面显示 v3.0.12-jito 格式，您只需输入 v3.0.12)"
     echo ""
     read -p "是否跳过验证继续安装？(y/n): " skip_verify
     if [[ "$skip_verify" == "y" || "$skip_verify" == "Y" ]]; then

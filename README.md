@@ -54,7 +54,7 @@
 
 ## 🚀 Quick Start
 
-**Three-Step Installation (Source Compilation)**
+**Three-Step Installation**
 
 ```bash
 # Switch to root user
@@ -73,15 +73,15 @@ bash verify-mounts.sh
 
 # Step 2: Build Jito Solana from source (15-30 minutes)
 bash 2-install-jito-validator.sh
-# Enter version when prompted (e.g., v3.0.11)
-# Enhanced with skip option for network issues
+# Enter version when prompted (e.g., v3.0.12)
+# Enhanced version validation with network fallback
 
 # Step 3: Download snapshot and start node
 bash 3-start.sh
 ```
 
-> **⚠️ Why Source Compilation Only?**
-> Jito precompiled releases contain CLI tools but **lack the validator binary** required for RPC nodes. Source compilation ensures you get the complete `agave-validator` binary with full MEV support.
+> **ℹ️ Installation Method**
+> This installation uses **source compilation from GitHub** to build Jito Solana validator. This ensures you get the complete `agave-validator` binary with full MEV support required for RPC nodes.
 
 ## ⚠️ Critical: Memory Management Details (Required for 128GB Systems)
 

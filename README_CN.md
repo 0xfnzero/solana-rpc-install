@@ -54,7 +54,7 @@
 
 ## 🚀 快速开始
 
-**三步安装（源码编译）**
+**三步安装**
 
 ```bash
 # 切换到 root 用户
@@ -73,15 +73,15 @@ bash verify-mounts.sh
 
 # 步骤 2: 从源码构建 Jito Solana (15-30 分钟)
 bash 2-install-jito-validator.sh
-# 提示时输入版本号 (例如: v3.0.11)
+# 提示时输入版本号 (例如: v3.0.12)
 # 增强版本验证，网络问题时可跳过
 
 # 步骤 3: 下载快照并启动节点
 bash 3-start.sh
 ```
 
-> **⚠️ 为什么只有源码编译？**
-> Jito 预编译版本只包含 CLI 工具，**缺少 RPC 节点所需的 validator 二进制文件**。源码编译确保您获得完整的 `agave-validator` 二进制文件和完整 MEV 支持。
+> **ℹ️ 安装方式**
+> 本安装使用 **GitHub 源码编译** 方式构建 Jito Solana 验证节点。这确保您获得完整的 `agave-validator` 二进制文件和 RPC 节点所需的完整 MEV 支持。
 
 ## ⚠️ 重要：内存管理详解 (128GB 系统必读)
 
