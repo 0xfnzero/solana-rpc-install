@@ -49,7 +49,7 @@
   - **2 disks**: System + 1 data disk (recommended, best cost-performance)
   - **3 disks**: System + 2 data disks (optimal performance)
   - **4+ disks**: System + 3 data disks (accounts/ledger/snapshot separated)
-- **OS**: Ubuntu 20.04/22.04
+- **OS**: Ubuntu 22.04/24.04
 - **Network**: High-bandwidth connection (1 Gbps+)
 
 ## 🚀 Quick Start
