@@ -133,13 +133,22 @@ mount_to_target() {
     local target="$2"
     local label="$3"
 
-    # 检查是否有文件系统
-    if ! has_fs "$dev"; then
+    # 检测或创建文件系统
+    local fs_type=""
+    if has_fs "$dev"; then
+        # 检测现有文件系统类型
+        fs_type=$(blkid -o value -s TYPE "$dev" 2>/dev/null || echo "")
+        if [[ -n "$fs_type" ]]; then
+            echo "   - [$label] 检测到现有文件系统：$fs_type，保留"
+        else
+            fs_type="auto"
+            echo "   - [$label] 检测到文件系统但类型未知，使用 auto"
+        fi
+    else
+        # 没有文件系统，创建 ext4
         echo "   - [$label] 创建 ext4 文件系统：$dev"
         mkfs.ext4 -F "$dev" >/dev/null 2>&1
-    else
-        local fstype=$(blkid -o value -s TYPE "$dev")
-        echo "   - [$label] 检测到现有文件系统：$fstype"
+        fs_type="ext4"
     fi
 
     # 创建目标目录
@@ -149,9 +158,9 @@ mount_to_target() {
     echo "   - [$label] 挂载：$dev -> $target"
     mount "$dev" "$target"
 
-    # 添加到 fstab
-    echo "$dev $target ext4 defaults 0 0" >> /etc/fstab
-    echo -e "   - [$label] ${GREEN}✓ 完成${NC}"
+    # 添加到 fstab（使用检测到的文件系统类型）
+    echo "$dev $target $fs_type defaults 0 0" >> /etc/fstab
+    echo -e "   - [$label] ${GREEN}✓ 完成 ($fs_type)${NC}"
     echo ""
 }
 

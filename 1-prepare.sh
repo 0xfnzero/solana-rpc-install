@@ -68,24 +68,40 @@ mount_one() {
     fi
   fi
 
-  # 如果没有文件系统，创建 ext4
-  if ! has_fs "$dev"; then
+  # 检测或创建文件系统
+  local fs_type=""
+  if has_fs "$dev"; then
+    # 检测现有文件系统类型
+    fs_type=$(blkid -o value -s TYPE "$dev" 2>/dev/null || echo "")
+    if [[ -n "$fs_type" ]]; then
+      echo "   - 检测到现有文件系统：$fs_type，保留"
+    else
+      # 有文件系统但检测不到类型，使用 auto
+      fs_type="auto"
+      echo "   - 检测到文件系统但类型未知，使用 auto"
+    fi
+  else
+    # 没有文件系统，创建 ext4
     echo "   - 为 $dev 创建 ext4 文件系统（首次使用）"
-    mkfs.ext4 -F "$dev"
+    mkfs.ext4 -F "$dev" >/dev/null 2>&1
+    fs_type="ext4"
   fi
 
   # 创建目标目录并挂载
   mkdir -p "$target"
-  mount -o defaults "$dev" "$target"
+  mount "$dev" "$target" || {
+    echo "   ⚠️  挂载失败：$dev -> $target"
+    return 1
+  }
 
-  # 更新 fstab 配置（先清理旧配置，再添加新配置）
-  if grep -qE "^${dev} " /etc/fstab 2>/dev/null; then
-    echo "   - 更新 fstab 中的配置"
-    sed -i "\|^${dev} |d" /etc/fstab
-  fi
-  echo "$dev $target ext4 defaults 0 0" >> /etc/fstab
+  # 更新 fstab 配置（先清理设备的所有旧配置，再添加新配置）
+  sed -i "\|^${dev} |d" /etc/fstab 2>/dev/null || true
+  sed -i "\|^[^ ]* ${target} |d" /etc/fstab 2>/dev/null || true
 
-  echo "   - ✅ 挂载完成：$dev -> $target"
+  # 使用检测到的文件系统类型（xfs, ext4, 或 auto）
+  echo "$dev $target $fs_type defaults 0 0" >> /etc/fstab
+
+  echo "   - ✅ 挂载完成：$dev -> $target ($fs_type)"
 }
 
 # ---------- 步骤 2.1: 收集所有可用数据盘 ----------
