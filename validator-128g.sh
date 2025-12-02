@@ -23,7 +23,22 @@ echo "   ✅ Transaction History: ENABLED"
 echo "   📊 Full RPC features with slightly conservative parameters"
 echo "=================================================================="
 
-exec agave-validator \
+# Auto-detect validator command
+if command -v agave-validator &>/dev/null; then
+  VALIDATOR_CMD="agave-validator"
+elif command -v solana-validator &>/dev/null; then
+  VALIDATOR_CMD="solana-validator"
+else
+  echo "❌ ERROR: No validator command found!"
+  echo "   Please install Jito Solana validator first"
+  echo "   Run: bash install-jito-validator.sh"
+  exit 1
+fi
+
+echo "Using validator: $VALIDATOR_CMD"
+echo "=================================================================="
+
+exec $VALIDATOR_CMD \
  --geyser-plugin-config /root/sol/bin/yellowstone-config.json \
  --ledger /root/sol/ledger \
  --accounts /root/sol/accounts \
