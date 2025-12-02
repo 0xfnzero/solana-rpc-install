@@ -41,56 +41,29 @@ echo ""
 # Step 0: 选择版本
 # =============================
 echo "==> 0) 选择 Jito Solana 版本..."
+echo ""
+echo "📋 常用版本参考:"
+echo "  v3.0.x 系列: v3.0.12, v3.0.11, v3.0.10"
+echo "  v3.1.x 系列: v3.1.3, v3.1.2"
+echo ""
+echo "🔍 查看所有版本: https://github.com/jito-foundation/jito-solana/tags"
+echo "   (页面显示 v3.0.12-jito 格式，您只需输入 v3.0.12)"
+echo ""
 
 while true; do
-  echo ""
-  echo "📝 输入说明: 只需输入版本号 (如 v3.0.12)，脚本会自动添加 -jito 后缀"
-  read -p "请输入 Jito Solana 版本号 (例如 v3.0.12, v3.0.11): " SOLANA_VERSION
+  read -p "请输入 Jito Solana 版本号 (例如 v3.0.12): " SOLANA_VERSION
 
   # Validate version format
   if [[ ! "$SOLANA_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "[错误] 版本号格式不正确，应为 vX.Y.Z 格式 (例如 v3.0.11)"
+    echo "[错误] 版本号格式不正确，应为 vX.Y.Z 格式 (例如 v3.0.12)"
     echo "       注意: 只输入版本号，不要包含 -jito 后缀"
-    read -p "是否重新输入版本号？(y/n): " retry
-    [[ "$retry" != "y" && "$retry" != "Y" ]] && exit 1
     continue
   fi
 
-  # Verify version exists on GitHub
+  # Construct tag name
   JITO_TAG="${SOLANA_VERSION}-jito"
-  GITHUB_API_URL="https://api.github.com/repos/jito-foundation/jito-solana/tags"
-
-  echo "正在验证版本 ${JITO_TAG}..."
-
-  # Try to verify version with timeout and better error handling
-  # Use grep with fixed strings for more reliable matching
-  if timeout 10 curl -s --connect-timeout 5 "$GITHUB_API_URL" 2>/dev/null | grep -F "\"name\": \"$JITO_TAG\"" >/dev/null 2>&1; then
-    echo "✓ 版本 ${JITO_TAG} 验证成功"
-    break
-  else
-    echo "⚠️  无法验证版本 ${JITO_TAG}"
-    echo ""
-    echo "可能的原因："
-    echo "  1. 网络连接问题或 GitHub API 访问受限"
-    echo "  2. 版本不存在"
-    echo ""
-    echo "📋 常用版本参考 (只输入版本号部分):"
-    echo "  v3.0.x 系列: v3.0.12, v3.0.11, v3.0.10"
-    echo "  v3.1.x 系列: v3.1.3, v3.1.2"
-    echo ""
-    echo "🔍 查看所有版本:"
-    echo "  https://github.com/jito-foundation/jito-solana/tags"
-    echo "  (页面显示 v3.0.12-jito 格式，您只需输入 v3.0.12)"
-    echo ""
-    read -p "是否跳过验证继续安装？(y/n): " skip_verify
-    if [[ "$skip_verify" == "y" || "$skip_verify" == "Y" ]]; then
-      echo "⚠️  跳过版本验证，继续安装 ${JITO_TAG}"
-      break
-    else
-      read -p "是否重新输入版本号？(y/n): " retry
-      [[ "$retry" != "y" && "$retry" != "Y" ]] && exit 1
-    fi
-  fi
+  echo "✓ 将安装版本: ${JITO_TAG}"
+  break
 done
 
 echo ""
