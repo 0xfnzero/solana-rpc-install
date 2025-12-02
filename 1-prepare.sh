@@ -32,12 +32,34 @@ echo "   ✓ 目录已创建"
 # ---------- 自动判盘并挂载（优先：accounts -> ledger -> snapshot） ----------
 echo ""
 echo "==> 2) 自动检测磁盘并安全挂载（优先 accounts）..."
-ROOT_SRC=$(findmnt -no SOURCE / || true)
-ROOT_DISK=""
-if [[ -n "${ROOT_SRC:-}" ]]; then
-  ROOT_DISK=$(lsblk -no pkname "$ROOT_SRC" 2>/dev/null || true)
-  [[ -n "$ROOT_DISK" ]] && ROOT_DISK="/dev/$ROOT_DISK"
+
+# 收集所有系统盘（包含 /, /boot, /boot/efi 的磁盘）
+SYSTEM_DISKS=()
+
+# 检测根分区所在磁盘
+for mount_point in "/" "/boot" "/boot/efi"; do
+  src=$(findmnt -no SOURCE "$mount_point" 2>/dev/null || true)
+  if [[ -n "$src" ]]; then
+    # 获取磁盘名（可能是 /dev/nvme0n1p2, /dev/mapper/vg0-root 等）
+    disk=$(lsblk -no pkname "$src" 2>/dev/null | head -1 || true)
+    if [[ -n "$disk" ]]; then
+      SYSTEM_DISKS+=("/dev/$disk")
+    fi
+  fi
+done
+
+# 去重
+SYSTEM_DISKS=($(printf '%s\n' "${SYSTEM_DISKS[@]}" | sort -u))
+
+if ((${#SYSTEM_DISKS[@]} > 0)); then
+  echo "   检测到系统盘："
+  for disk in "${SYSTEM_DISKS[@]}"; do
+    echo "     - $disk"
+  done
+else
+  echo "   ⚠️  未能检测到系统盘"
 fi
+
 MAP_DISKS=($(lsblk -dn -o NAME,TYPE | awk '$2=="disk"{print $1}'))
 
 is_mounted_dev() { findmnt -no TARGET "$1" &>/dev/null; }
@@ -106,32 +128,114 @@ mount_one() {
 
 # ---------- 步骤 2.1: 收集所有可用数据盘 ----------
 echo "==> 2.1) 收集可用数据盘..."
+
+# 辅助函数：严格检查是否为系统关键分区
+is_system_partition() {
+  local dev="$1"
+
+  # 未挂载的分区不是系统分区
+  if ! findmnt -no TARGET "$dev" &>/dev/null; then
+    return 1
+  fi
+
+  local mount_point=$(findmnt -no TARGET "$dev" 2>/dev/null || echo "")
+
+  # 严格匹配系统关键路径
+  case "$mount_point" in
+    "/"|\
+    "/boot"|\
+    "/boot/"*|\
+    "/boot/efi"|\
+    "/efi"|\
+    "/efi/"*|\
+    *"/swap"*|\
+    "[SWAP]")
+      return 0  # 是系统分区
+      ;;
+    *)
+      return 1  # 不是系统分区
+      ;;
+  esac
+}
+
 AVAILABLE_DISKS=()
 for d in "${MAP_DISKS[@]}"; do
   disk="/dev/$d"
-  [[ -n "$ROOT_DISK" && "$disk" == "$ROOT_DISK" ]] && continue
+
+  # 跳过所有系统盘
+  is_sys_disk=false
+  for sys_disk in "${SYSTEM_DISKS[@]}"; do
+    if [[ "$disk" == "$sys_disk" ]]; then
+      echo "   - 跳过系统盘：$disk"
+      is_sys_disk=true
+      break
+    fi
+  done
+  [[ "$is_sys_disk" == true ]] && continue
+
+  # 获取所有分区
   parts=($(lsblk -n -o NAME,TYPE "$disk" | awk '$2=="part"{gsub(/^[├─└│ ]*/, "", $1); print $1}'))
+
   if ((${#parts[@]}==0)); then
-    # 整盘无分区
+    # 整盘无分区 - 检查是否被系统使用
+    if is_system_partition "$disk"; then
+      echo "   - 跳过系统盘：$disk (系统挂载：$(findmnt -no TARGET "$disk" 2>/dev/null))"
+      continue
+    fi
+
+    size=$(lsblk -bno SIZE "$disk" 2>/dev/null | head -1 | tr -d '[:space:]')
+    size_gb=$((size / 1024 / 1024 / 1024))
     AVAILABLE_DISKS+=("$disk")
-    echo "   - 可用数据盘：$disk (整盘)"
+    echo "   - 可用数据盘：$disk (整盘, ${size_gb}GB)"
   else
-    # 有分区，选择最大分区
+    # 有分区 - 选择最大的非系统分区
+    echo "   - 扫描磁盘分区：$disk"
     best=""; best_size=0
+
     for p in "${parts[@]}"; do
       part="/dev/$p"
-      size=$(lsblk -bno SIZE "$part")
-      (( size > best_size )) && { best="$part"; best_size=$size; }
+
+      # 检查是否为系统分区
+      if is_system_partition "$part"; then
+        local mnt=$(findmnt -no TARGET "$part" 2>/dev/null || echo "未知")
+        echo "     ✗ 跳过系统分区：$part -> $mnt"
+        continue
+      fi
+
+      # 获取分区大小
+      size=$(lsblk -bno SIZE "$part" 2>/dev/null | head -1 | tr -d '[:space:]')
+
+      # 验证是否为有效数字
+      if [[ -z "$size" ]] || [[ ! "$size" =~ ^[0-9]+$ ]]; then
+        echo "     ✗ 跳过无效分区：$part (无法读取大小)"
+        continue
+      fi
+
+      size_gb=$((size / 1024 / 1024 / 1024))
+      echo "     ✓ 发现非系统分区：$part (${size_gb}GB)"
+
+      # 选择最大的分区
+      if (( size > best_size )); then
+        best="$part"
+        best_size=$size
+      fi
     done
+
     if [[ -n "$best" ]]; then
+      best_size_gb=$((best_size / 1024 / 1024 / 1024))
       AVAILABLE_DISKS+=("$best")
-      echo "   - 可用数据盘：$best (最大分区)"
+      echo "   - 可用数据盘：$best (最大非系统分区, ${best_size_gb}GB)"
+    else
+      echo "   - 跳过 $disk：所有分区均为系统分区"
     fi
   fi
 done
 
 if ((${#AVAILABLE_DISKS[@]}==0)); then
-    echo "   - 未检测到可用数据盘，所有目录将使用系统盘"
+    echo "   ⚠️  未检测到可用数据盘，所有目录将使用系统盘"
+else
+    echo ""
+    echo "   检测到 ${#AVAILABLE_DISKS[@]} 个可用数据盘"
 fi
 
 echo ""
