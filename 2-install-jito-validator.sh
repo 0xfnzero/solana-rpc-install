@@ -207,7 +207,7 @@ echo "   版本: $VERSION_OUTPUT"
 
 echo ""
 echo "==> 8) 生成 Validator Keypair..."
-[[ -f "$KEYPAIR" ]] || solana-keygen new -o "$KEYPAIR"
+[[ -f "$KEYPAIR" ]] || solana-keygen new --no-passphrase -o "$KEYPAIR"
 
 echo ""
 echo "==> 9) 配置防火墙..."

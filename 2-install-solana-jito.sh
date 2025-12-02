@@ -202,7 +202,7 @@ echo "   ..."
 echo ""
 
 echo "==> 7) 生成 Validator Keypair ..."
-[[ -f "$KEYPAIR" ]] || solana-keygen new -o "$KEYPAIR"
+[[ -f "$KEYPAIR" ]] || solana-keygen new --no-passphrase -o "$KEYPAIR"
 
 echo "==> 8) 配置 UFW 防火墙 ..."
 ufw --force enable
