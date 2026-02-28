@@ -197,7 +197,7 @@ for d in "${MAP_DISKS[@]}"; do
 
       # 检查是否为系统分区
       if is_system_partition "$part"; then
-        local mnt=$(findmnt -no TARGET "$part" 2>/dev/null || echo "未知")
+        mnt=$(findmnt -no TARGET "$part" 2>/dev/null || echo "未知")
         echo "     ✗ 跳过系统分区：$part -> $mnt"
         continue
       fi
