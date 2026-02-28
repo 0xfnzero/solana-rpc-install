@@ -4,7 +4,7 @@
 # ==================================================================
 # Tier: STANDARD (Recommended Minimum)
 # Target Peak: ~110-130GB
-# RPC Threads: 10 | Cache: 4GB (min) | Index Bins: 4096
+# RPC Threads: 10 | Cache: 8GB | Index Bins: 4096
 # Transaction History: ✅ ENABLED
 # ==================================================================
 
@@ -16,7 +16,7 @@ TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
 
 echo "✅ TIER 2: 192GB STANDARD CONFIGURATION"
 echo "   System RAM: ${TOTAL_MEM_GB}GB | Target Peak: ~110-130GB"
-echo "   RPC Threads: 10 | Accounts Cache: 4GB (min) | Index Bins: 4096"
+echo "   RPC Threads: 10 | Accounts Cache: 8GB | Index Bins: 4096"
 echo "   ✅ Transaction History: ENABLED"
 echo "   ✅ Full RPC API available (getTransaction, getSignaturesForAddress)"
 echo "=================================================================="
@@ -54,7 +54,7 @@ exec $VALIDATOR_CMD \
  --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ \
  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d \
  --only-known-rpc --no-port-check \
- --dynamic-port-range 8000-8025 --gossip-port 8001 \
+ --dynamic-port-range 8000-8025 --gossip-port 8000 \
  --rpc-bind-address 0.0.0.0 --rpc-port 8899 \
  --full-rpc-api --private-rpc --rpc-threads 10 \
  --rpc-max-multiple-accounts 50 \
@@ -72,7 +72,7 @@ exec $VALIDATOR_CMD \
  --enable-rpc-transaction-history \
  --enable-accounts-disk-index \
  --accounts-db-access-storages-method file \
- --accounts-db-cache-limit-mb 4096 \
+ --accounts-db-cache-limit-mb 8192 \
  --accounts-index-scan-results-limit-mb 256 \
  --accounts-shrink-ratio 0.90 --accounts-index-bins 4096 \
  --block-production-method central-scheduler \

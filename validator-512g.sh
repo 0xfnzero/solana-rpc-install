@@ -54,7 +54,7 @@ exec $VALIDATOR_CMD \
  --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ \
  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d \
  --only-known-rpc --no-port-check \
- --dynamic-port-range 8000-8025 --gossip-port 8001 \
+ --dynamic-port-range 8000-8025 --gossip-port 8000 \
  --rpc-bind-address 0.0.0.0 --rpc-port 8899 \
  --full-rpc-api --private-rpc --rpc-threads 20 \
  --rpc-max-multiple-accounts 50 \
