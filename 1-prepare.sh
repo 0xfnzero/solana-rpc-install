@@ -81,7 +81,7 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_DONE_2="数据盘挂载（如有）"
   M_DONE_3="系统参数优化"
   M_DONE_LABEL="已完成:"
-  M_NEXT="下一步: bash /root/2-install-jito-validator.sh"
+  M_NEXT="下一步: bash 2-install-jito-validator.sh"
 else
   M_HEADER="Step 1: Environment preparation"
   M_STEP1="Create directories..."
@@ -138,7 +138,7 @@ else
   M_DONE_2="Data disk mounted (if any)"
   M_DONE_3="System parameters tuned"
   M_DONE_LABEL="Done:"
-  M_NEXT="Next: bash /root/2-install-jito-validator.sh"
+  M_NEXT="Next: bash 2-install-jito-validator.sh"
 fi
 
 echo "============================================"
