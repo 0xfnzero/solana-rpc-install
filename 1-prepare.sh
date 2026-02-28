@@ -7,6 +7,8 @@ set -euo pipefail
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lang.sh
+source "$SCRIPT_DIR/lang.sh"
 
 BASE=${BASE:-/root/sol}
 LEDGER="$BASE/ledger"
@@ -16,22 +18,140 @@ BIN="$BASE/bin"
 TOOLS="$BASE/tools"
 
 if [[ $EUID -ne 0 ]]; then
-  echo "[ERROR] 请用 root 执行：sudo bash $0" >&2
+  echo "[ERROR] Please run as root: sudo bash $0" >&2
   exit 1
 fi
 
+prompt_lang
+
+if [[ "$LANG_SCRIPT" == "zh" ]]; then
+  M_HEADER="步骤 1: 环境准备"
+  M_STEP1="创建目录 ..."
+  M_DIRS_OK="目录已创建"
+  M_STEP2="自动检测磁盘并安全挂载（优先 accounts）..."
+  M_SYS_DISKS="检测到系统盘："
+  M_NO_SYS_DISK="未能检测到系统盘"
+  M_MOUNTED_OK="已正确挂载：%s -> %s，跳过"
+  M_MOUNT_WRONG="检测到 %s 挂载在错误位置：%s"
+  M_UMOUNT="卸载 %s ..."
+  M_UMOUNT_FAIL="无法卸载 %s，可能正在使用。请手动检查并卸载后重新运行脚本"
+  M_FSTAB_CLEAN="清理 fstab 中的旧挂载配置：%s"
+  M_FS_DETECTED="检测到现有文件系统：%s，保留"
+  M_FS_UNKNOWN="检测到文件系统但类型未知，使用 auto"
+  M_MKFS="为 %s 创建 ext4 文件系统（首次使用）"
+  M_MOUNT_FAIL="挂载失败：%s -> %s"
+  M_MOUNT_DONE="挂载完成：%s -> %s (%s)"
+  M_STEP21="收集可用数据盘..."
+  M_SKIP_SYS="跳过系统盘：%s"
+  M_SKIP_SYS_MOUNT="跳过系统盘：%s (系统挂载：%s)"
+  M_AVAIL_DISK="可用数据盘：%s (整盘, %sGB)"
+  M_SCAN_PARTS="扫描磁盘分区：%s"
+  M_SKIP_PART="跳过系统分区：%s -> %s"
+  M_SKIP_INVALID="跳过无效分区：%s (无法读取大小)"
+  M_FOUND_PART="发现非系统分区：%s (%sGB)"
+  M_AVAIL_BEST="可用数据盘：%s (最大非系统分区, %sGB)"
+  M_ALL_SYS="跳过 %s：所有分区均为系统分区"
+  M_NO_DATA_DISK="未检测到可用数据盘，所有目录将使用系统盘"
+  M_N_DISKS="检测到 %s 个可用数据盘"
+  M_STEP22="检查当前挂载状态..."
+  M_CURRENT="当前状态："
+  M_STEP23="检测挂载优先级..."
+  M_PRIO_ERR="检测到优先级错误："
+  M_PRIO_ACC="Accounts 应该优先获得数据盘（性能需求最高）"
+  M_PRIO_LOW="当前 Accounts 在系统盘上，而低优先级目录占用了数据盘"
+  M_FIX_PRIO="自动修复优先级..."
+  M_UMOUNT_DIR="卸载：%s"
+  M_UMOUNT_DIR_FAIL="无法卸载 %s，可能有进程正在使用"
+  M_STOP_SVC="请先停止相关服务后重新运行脚本"
+  M_FSTAB_OLD="清理 /etc/fstab 旧配置"
+  M_PRIO_CLEANED="优先级错误已清理，准备重新挂载"
+  M_STEP24="按优先级挂载数据盘..."
+  M_PRIO_ORDER="优先级：Accounts (最高) > Ledger (中等) > Snapshot (最低)"
+  M_MOUNT_ACC_FAIL="挂载 accounts 失败"
+  M_ACC_SYS="Accounts: 使用系统盘（无可用数据盘）"
+  M_MOUNT_LED_FAIL="挂载 ledger 失败"
+  M_LED_SYS="Ledger: 使用系统盘"
+  M_MOUNT_SNAP_FAIL="挂载 snapshot 失败"
+  M_SNAP_SYS="Snapshot: 使用系统盘"
+  M_STEP3="系统优化（极限网络性能）..."
+  M_NO_OPT_SCRIPT="找不到 system-optimize.sh，跳过系统优化"
+  M_DONE_HEADER="步骤 1 完成!"
+  M_DONE_1="目录结构创建"
+  M_DONE_2="数据盘挂载（如有）"
+  M_DONE_3="系统参数优化"
+  M_DONE_LABEL="已完成:"
+  M_NEXT="下一步: bash /root/2-install-jito-validator.sh"
+else
+  M_HEADER="Step 1: Environment preparation"
+  M_STEP1="Create directories..."
+  M_DIRS_OK="Directories created"
+  M_STEP2="Auto-detect disks and mount (priority: accounts)..."
+  M_SYS_DISKS="System disks detected:"
+  M_NO_SYS_DISK="No system disk detected"
+  M_MOUNTED_OK="Already mounted: %s -> %s, skip"
+  M_MOUNT_WRONG="Detected %s mounted at wrong place: %s"
+  M_UMOUNT="Unmounting %s ..."
+  M_UMOUNT_FAIL="Cannot unmount %s, may be in use. Unmount manually and re-run"
+  M_FSTAB_CLEAN="Cleaning old fstab entry: %s"
+  M_FS_DETECTED="Existing filesystem detected: %s, keeping"
+  M_FS_UNKNOWN="Filesystem type unknown, using auto"
+  M_MKFS="Creating ext4 on %s (first use)"
+  M_MOUNT_FAIL="Mount failed: %s -> %s"
+  M_MOUNT_DONE="Mounted: %s -> %s (%s)"
+  M_STEP21="Collect available data disks..."
+  M_SKIP_SYS="Skipping system disk: %s"
+  M_SKIP_SYS_MOUNT="Skipping system disk: %s (mount: %s)"
+  M_AVAIL_DISK="Available disk: %s (whole disk, %sGB)"
+  M_SCAN_PARTS="Scanning partitions: %s"
+  M_SKIP_PART="Skipping system partition: %s -> %s"
+  M_SKIP_INVALID="Skipping invalid partition: %s (cannot read size)"
+  M_FOUND_PART="Found non-system partition: %s (%sGB)"
+  M_AVAIL_BEST="Available disk: %s (largest non-system partition, %sGB)"
+  M_ALL_SYS="Skipping %s: all partitions are system"
+  M_NO_DATA_DISK="No data disk found, all dirs will use system disk"
+  M_N_DISKS="Found %s available data disk(s)"
+  M_STEP22="Check current mount status..."
+  M_CURRENT="Current status:"
+  M_STEP23="Check mount priority..."
+  M_PRIO_ERR="Priority issue detected:"
+  M_PRIO_ACC="Accounts should get data disk first (highest performance need)"
+  M_PRIO_LOW="Accounts on system disk while lower-priority dirs use data disk"
+  M_FIX_PRIO="Auto-fixing priority..."
+  M_UMOUNT_DIR="Unmounting: %s"
+  M_UMOUNT_DIR_FAIL="Cannot unmount %s, may be in use"
+  M_STOP_SVC="Stop the service first and re-run"
+  M_FSTAB_OLD="Cleaning old /etc/fstab entries"
+  M_PRIO_CLEANED="Priority cleaned, will re-mount"
+  M_STEP24="Mount data disks by priority..."
+  M_PRIO_ORDER="Priority: Accounts (highest) > Ledger > Snapshot (lowest)"
+  M_MOUNT_ACC_FAIL="Mount accounts failed"
+  M_ACC_SYS="Accounts: using system disk (no data disk)"
+  M_MOUNT_LED_FAIL="Mount ledger failed"
+  M_LED_SYS="Ledger: using system disk"
+  M_MOUNT_SNAP_FAIL="Mount snapshot failed"
+  M_SNAP_SYS="Snapshot: using system disk"
+  M_STEP3="System tuning (network performance)..."
+  M_NO_OPT_SCRIPT="system-optimize.sh not found, skipping"
+  M_DONE_HEADER="Step 1 complete!"
+  M_DONE_1="Directory structure created"
+  M_DONE_2="Data disk mounted (if any)"
+  M_DONE_3="System parameters tuned"
+  M_DONE_LABEL="Done:"
+  M_NEXT="Next: bash /root/2-install-jito-validator.sh"
+fi
+
 echo "============================================"
-echo "步骤 1: 环境准备"
+echo "$M_HEADER"
 echo "============================================"
 echo ""
 
-echo "==> 1) 创建目录 ..."
+echo "==> 1) $M_STEP1"
 mkdir -p "$LEDGER" "$ACCOUNTS" "$SNAPSHOT" "$BIN" "$TOOLS"
-echo "   ✓ 目录已创建"
+echo "   ✓ $M_DIRS_OK"
 
-# ---------- 自动判盘并挂载（优先：accounts -> ledger -> snapshot） ----------
+# ---------- Auto-detect and mount (priority: accounts -> ledger -> snapshot) ----------
 echo ""
-echo "==> 2) 自动检测磁盘并安全挂载（优先 accounts）..."
+echo "==> 2) $M_STEP2"
 
 # 收集所有系统盘（包含 /, /boot, /boot/efi 的磁盘）
 SYSTEM_DISKS=()
@@ -52,12 +172,12 @@ done
 SYSTEM_DISKS=($(printf '%s\n' "${SYSTEM_DISKS[@]}" | sort -u))
 
 if ((${#SYSTEM_DISKS[@]} > 0)); then
-  echo "   检测到系统盘："
+  echo "   $M_SYS_DISKS"
   for disk in "${SYSTEM_DISKS[@]}"; do
     echo "     - $disk"
   done
 else
-  echo "   ⚠️  未能检测到系统盘"
+  echo "   ⚠️  $M_NO_SYS_DISK"
 fi
 
 MAP_DISKS=($(lsblk -dn -o NAME,TYPE | awk '$2=="disk"{print $1}'))
@@ -68,66 +188,56 @@ has_fs() { blkid -o value -s TYPE "$1" &>/dev/null; }
 mount_one() {
   local dev="$1"; local target="$2"
 
-  # 检查设备是否已挂载
+  # Check if device is already mounted
   if is_mounted_dev "$dev"; then
     local current_mount=$(findmnt -no TARGET "$dev")
-    # 如果已挂载到目标位置，跳过
     if [[ "$current_mount" == "$target" ]]; then
-      echo "   - 已正确挂载：$dev -> $target，跳过"
+      printf "   - $M_MOUNTED_OK\n" "$dev" "$target"
       return 0
     fi
-    # 如果挂载到了错误的位置，先卸载
-    echo "   - 检测到 $dev 挂载在错误位置：$current_mount"
-    echo "   - 卸载 $dev ..."
+    printf "   - $M_MOUNT_WRONG\n" "$dev" "$current_mount"
+    printf "   - $M_UMOUNT\n" "$dev"
     umount "$dev" || {
-      echo "   ⚠️  无法卸载 $dev，可能正在使用。请手动检查并卸载后重新运行脚本"
+      printf "   ⚠️  $M_UMOUNT_FAIL\n" "$dev"
       return 1
     }
-    # 清理 fstab 中的旧配置
     if grep -q "$current_mount" /etc/fstab 2>/dev/null; then
-      echo "   - 清理 fstab 中的旧挂载配置：$current_mount"
+      printf "   - $M_FSTAB_CLEAN\n" "$current_mount"
       sed -i "\|$current_mount|d" /etc/fstab
     fi
   fi
 
-  # 检测或创建文件系统
   local fs_type=""
   if has_fs "$dev"; then
-    # 检测现有文件系统类型
     fs_type=$(blkid -o value -s TYPE "$dev" 2>/dev/null || echo "")
     if [[ -n "$fs_type" ]]; then
-      echo "   - 检测到现有文件系统：$fs_type，保留"
+      printf "   - $M_FS_DETECTED\n" "$fs_type"
     else
-      # 有文件系统但检测不到类型，使用 auto
       fs_type="auto"
-      echo "   - 检测到文件系统但类型未知，使用 auto"
+      echo "   - $M_FS_UNKNOWN"
     fi
   else
-    # 没有文件系统，创建 ext4
-    echo "   - 为 $dev 创建 ext4 文件系统（首次使用）"
+    printf "   - $M_MKFS\n" "$dev"
     mkfs.ext4 -F "$dev" >/dev/null 2>&1
     fs_type="ext4"
   fi
 
-  # 创建目标目录并挂载
   mkdir -p "$target"
   mount "$dev" "$target" || {
-    echo "   ⚠️  挂载失败：$dev -> $target"
+    printf "   ⚠️  $M_MOUNT_FAIL\n" "$dev" "$target"
     return 1
   }
 
-  # 更新 fstab 配置（先清理设备的所有旧配置，再添加新配置）
   sed -i "\|^${dev} |d" /etc/fstab 2>/dev/null || true
   sed -i "\|^[^ ]* ${target} |d" /etc/fstab 2>/dev/null || true
 
-  # 使用检测到的文件系统类型（xfs, ext4, 或 auto）
   echo "$dev $target $fs_type defaults 0 0" >> /etc/fstab
 
-  echo "   - ✅ 挂载完成：$dev -> $target ($fs_type)"
+  printf "   - ✅ $M_MOUNT_DONE\n" "$dev" "$target" "$fs_type"
 }
 
-# ---------- 步骤 2.1: 收集所有可用数据盘 ----------
-echo "==> 2.1) 收集可用数据盘..."
+# ---------- Step 2.1: Collect available data disks ----------
+echo "==> 2.1) $M_STEP21"
 
 # 辅助函数：严格检查是否为系统关键分区
 is_system_partition() {
@@ -162,57 +272,51 @@ AVAILABLE_DISKS=()
 for d in "${MAP_DISKS[@]}"; do
   disk="/dev/$d"
 
-  # 跳过所有系统盘
+  # Skip system disks
   is_sys_disk=false
   for sys_disk in "${SYSTEM_DISKS[@]}"; do
     if [[ "$disk" == "$sys_disk" ]]; then
-      echo "   - 跳过系统盘：$disk"
+      printf "   - $M_SKIP_SYS\n" "$disk"
       is_sys_disk=true
       break
     fi
   done
   [[ "$is_sys_disk" == true ]] && continue
 
-  # 获取所有分区
   parts=($(lsblk -n -o NAME,TYPE "$disk" | awk '$2=="part"{gsub(/^[├─└│ ]*/, "", $1); print $1}'))
 
   if ((${#parts[@]}==0)); then
-    # 整盘无分区 - 检查是否被系统使用
     if is_system_partition "$disk"; then
-      echo "   - 跳过系统盘：$disk (系统挂载：$(findmnt -no TARGET "$disk" 2>/dev/null))"
+      printf "   - $M_SKIP_SYS_MOUNT\n" "$disk" "$(findmnt -no TARGET "$disk" 2>/dev/null)"
       continue
     fi
 
     size=$(lsblk -bno SIZE "$disk" 2>/dev/null | head -1 | tr -d '[:space:]')
     size_gb=$((size / 1024 / 1024 / 1024))
     AVAILABLE_DISKS+=("$disk")
-    echo "   - 可用数据盘：$disk (整盘, ${size_gb}GB)"
+    printf "   - $M_AVAIL_DISK\n" "$disk" "$size_gb"
   else
-    # 有分区 - 选择最大的非系统分区
-    echo "   - 扫描磁盘分区：$disk"
+    printf "   - $M_SCAN_PARTS\n" "$disk"
     best=""; best_size=0
 
     for p in "${parts[@]}"; do
       part="/dev/$p"
 
-      # 检查是否为系统分区
       if is_system_partition "$part"; then
-        mnt=$(findmnt -no TARGET "$part" 2>/dev/null || echo "未知")
-        echo "     ✗ 跳过系统分区：$part -> $mnt"
+        mnt=$(findmnt -no TARGET "$part" 2>/dev/null || echo "-")
+        printf "     ✗ $M_SKIP_PART\n" "$part" "$mnt"
         continue
       fi
 
-      # 获取分区大小
       size=$(lsblk -bno SIZE "$part" 2>/dev/null | head -1 | tr -d '[:space:]')
 
-      # 验证是否为有效数字
       if [[ -z "$size" ]] || [[ ! "$size" =~ ^[0-9]+$ ]]; then
-        echo "     ✗ 跳过无效分区：$part (无法读取大小)"
+        printf "     ✗ $M_SKIP_INVALID\n" "$part"
         continue
       fi
 
       size_gb=$((size / 1024 / 1024 / 1024))
-      echo "     ✓ 发现非系统分区：$part (${size_gb}GB)"
+      printf "     ✓ $M_FOUND_PART\n" "$part" "$size_gb"
 
       # 选择最大的分区
       if (( size > best_size )); then
@@ -224,22 +328,22 @@ for d in "${MAP_DISKS[@]}"; do
     if [[ -n "$best" ]]; then
       best_size_gb=$((best_size / 1024 / 1024 / 1024))
       AVAILABLE_DISKS+=("$best")
-      echo "   - 可用数据盘：$best (最大非系统分区, ${best_size_gb}GB)"
+      printf "   - $M_AVAIL_BEST\n" "$best" "$best_size_gb"
     else
-      echo "   - 跳过 $disk：所有分区均为系统分区"
+      printf "   - $M_ALL_SYS\n" "$disk"
     fi
   fi
 done
 
 if ((${#AVAILABLE_DISKS[@]}==0)); then
-    echo "   ⚠️  未检测到可用数据盘，所有目录将使用系统盘"
+    echo "   ⚠️  $M_NO_DATA_DISK"
 else
     echo ""
-    echo "   检测到 ${#AVAILABLE_DISKS[@]} 个可用数据盘"
+    printf "   $M_N_DISKS\n" "${#AVAILABLE_DISKS[@]}"
 fi
 
 echo ""
-echo "==> 2.2) 检查当前挂载状态..."
+echo "==> 2.2) $M_STEP22"
 CURRENT_ACC_MOUNT=$(df -P "$ACCOUNTS" 2>/dev/null | tail -1 | awk '{print $6}')
 CURRENT_LED_MOUNT=$(df -P "$LEDGER" 2>/dev/null | tail -1 | awk '{print $6}')
 CURRENT_SNAP_MOUNT=$(df -P "$SNAPSHOT" 2>/dev/null | tail -1 | awk '{print $6}')
@@ -248,95 +352,89 @@ CURRENT_ACC_DEV=$(df -P "$ACCOUNTS" 2>/dev/null | tail -1 | awk '{print $1}')
 CURRENT_LED_DEV=$(df -P "$LEDGER" 2>/dev/null | tail -1 | awk '{print $1}')
 CURRENT_SNAP_DEV=$(df -P "$SNAPSHOT" 2>/dev/null | tail -1 | awk '{print $1}')
 
-echo "   当前状态："
+echo "   $M_CURRENT"
 echo "   - Accounts: ${CURRENT_ACC_DEV} -> ${CURRENT_ACC_MOUNT}"
 echo "   - Ledger:   ${CURRENT_LED_DEV} -> ${CURRENT_LED_MOUNT}"
 echo "   - Snapshot: ${CURRENT_SNAP_DEV} -> ${CURRENT_SNAP_MOUNT}"
 
-# ---------- 步骤 2.3: 检测并修复优先级错误 ----------
+# ---------- Step 2.3: Detect and fix priority ----------
 echo ""
-echo "==> 2.3) 检测挂载优先级..."
+echo "==> 2.3) $M_STEP23"
 NEED_FIX=false
 
-# 检测优先级错误：accounts 未独立挂载，但 ledger 或 snapshot 独立挂载了
 if [[ "$CURRENT_ACC_MOUNT" != "$ACCOUNTS" ]]; then
     if [[ "$CURRENT_LED_MOUNT" == "$LEDGER" ]] || [[ "$CURRENT_SNAP_MOUNT" == "$SNAPSHOT" ]]; then
-        echo "   ⚠️  检测到优先级错误："
-        echo "   - Accounts 应该优先获得数据盘（性能需求最高）"
-        echo "   - 当前 Accounts 在系统盘上，而低优先级目录占用了数据盘"
+        echo "   ⚠️  $M_PRIO_ERR"
+        echo "   - $M_PRIO_ACC"
+        echo "   - $M_PRIO_LOW"
         NEED_FIX=true
     fi
 fi
 
 if $NEED_FIX && ((${#AVAILABLE_DISKS[@]}>0)); then
     echo ""
-    echo "   🔧 自动修复优先级..."
+    echo "   🔧 $M_FIX_PRIO"
 
-    # 卸载所有 Solana 数据目录（从子目录开始，避免嵌套问题）
     for dir in "$SNAPSHOT" "$LEDGER" "$ACCOUNTS"; do
         if mountpoint -q "$dir" 2>/dev/null; then
-            echo "   - 卸载：$dir"
+            printf "   - $M_UMOUNT_DIR\n" "$dir"
             umount "$dir" || {
-                echo "   ⚠️  无法卸载 $dir，可能有进程正在使用"
-                echo "   请先停止相关服务后重新运行脚本"
+                printf "   ⚠️  $M_UMOUNT_DIR_FAIL\n" "$dir"
+                echo "   $M_STOP_SVC"
                 exit 1
             }
         fi
     done
 
-    # 清理 fstab 中的旧配置
-    echo "   - 清理 /etc/fstab 旧配置"
+    echo "   - $M_FSTAB_OLD"
     sed -i "\|$ACCOUNTS|d" /etc/fstab 2>/dev/null || true
     sed -i "\|$LEDGER|d" /etc/fstab 2>/dev/null || true
     sed -i "\|$SNAPSHOT|d" /etc/fstab 2>/dev/null || true
 
-    echo "   ✓ 优先级错误已清理，准备重新挂载"
+    echo "   ✓ $M_PRIO_CLEANED"
     echo ""
 fi
 
-# ---------- 步骤 2.4: 按优先级挂载 ----------
-echo "==> 2.4) 按优先级挂载数据盘..."
-echo "   优先级：Accounts (最高) > Ledger (中等) > Snapshot (最低)"
+# ---------- Step 2.4: Mount by priority ----------
+echo "==> 2.4) $M_STEP24"
+echo "   $M_PRIO_ORDER"
 echo ""
 
-# 优先级 1: Accounts
 if ((${#AVAILABLE_DISKS[@]} >= 1)); then
-    mount_one "${AVAILABLE_DISKS[0]}" "$ACCOUNTS" || echo "   ⚠️  挂载 accounts 失败"
+    mount_one "${AVAILABLE_DISKS[0]}" "$ACCOUNTS" || echo "   ⚠️  $M_MOUNT_ACC_FAIL"
 else
-    echo "   - Accounts: 使用系统盘（无可用数据盘）"
+    echo "   - $M_ACC_SYS"
 fi
 
-# 优先级 2: Ledger
 if ((${#AVAILABLE_DISKS[@]} >= 2)); then
-    mount_one "${AVAILABLE_DISKS[1]}" "$LEDGER" || echo "   ⚠️  挂载 ledger 失败"
+    mount_one "${AVAILABLE_DISKS[1]}" "$LEDGER" || echo "   ⚠️  $M_MOUNT_LED_FAIL"
 else
-    echo "   - Ledger: 使用系统盘"
+    echo "   - $M_LED_SYS"
 fi
 
-# 优先级 3: Snapshot
 if ((${#AVAILABLE_DISKS[@]} >= 3)); then
-    mount_one "${AVAILABLE_DISKS[2]}" "$SNAPSHOT" || echo "   ⚠️  挂载 snapshot 失败"
+    mount_one "${AVAILABLE_DISKS[2]}" "$SNAPSHOT" || echo "   ⚠️  $M_MOUNT_SNAP_FAIL"
 else
-    echo "   - Snapshot: 使用系统盘"
+    echo "   - $M_SNAP_SYS"
 fi
 
 echo ""
-echo "==> 3) 系统优化（极限网络性能）..."
+echo "==> 3) $M_STEP3"
 if [[ -f "$SCRIPT_DIR/system-optimize.sh" ]]; then
   bash "$SCRIPT_DIR/system-optimize.sh"
 else
-  echo "   ⚠️  找不到 system-optimize.sh，跳过系统优化"
+  echo "   ⚠️  $M_NO_OPT_SCRIPT"
 fi
 
 echo ""
 echo "============================================"
-echo "✅ 步骤 1 完成!"
+echo "✅ $M_DONE_HEADER"
 echo "============================================"
 echo ""
-echo "已完成:"
-echo "  - 目录结构创建"
-echo "  - 数据盘挂载（如有）"
-echo "  - 系统参数优化"
+echo "$M_DONE_LABEL"
+echo "  - $M_DONE_1"
+echo "  - $M_DONE_2"
+echo "  - $M_DONE_3"
 echo ""
-echo "下一步: bash /root/2-install-solana.sh"
+echo "$M_NEXT"
 echo ""
