@@ -4,7 +4,7 @@
 # ==================================================================
 # Tier: STANDARD (Recommended Minimum)
 # Target Peak: ~110-130GB
-# RPC Threads: 10 | Cache: 2GB | Index Bins: 4096
+# RPC Threads: 10 | Cache: 4GB (min) | Index Bins: 4096
 # Transaction History: ✅ ENABLED
 # ==================================================================
 
@@ -16,7 +16,7 @@ TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
 
 echo "✅ TIER 2: 192GB STANDARD CONFIGURATION"
 echo "   System RAM: ${TOTAL_MEM_GB}GB | Target Peak: ~110-130GB"
-echo "   RPC Threads: 10 | Accounts Cache: 2GB | Index Bins: 4096"
+echo "   RPC Threads: 10 | Accounts Cache: 4GB (min) | Index Bins: 4096"
 echo "   ✅ Transaction History: ENABLED"
 echo "   ✅ Full RPC API available (getTransaction, getSignaturesForAddress)"
 echo "=================================================================="
@@ -72,7 +72,7 @@ exec $VALIDATOR_CMD \
  --enable-rpc-transaction-history \
  --enable-accounts-disk-index \
  --accounts-db-access-storages-method file \
- --accounts-db-cache-limit-mb 2048 \
+ --accounts-db-cache-limit-mb 4096 \
  --accounts-index-scan-results-limit-mb 256 \
  --accounts-shrink-ratio 0.90 --accounts-index-bins 4096 \
  --block-production-method central-scheduler \
