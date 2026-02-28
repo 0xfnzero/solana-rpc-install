@@ -23,15 +23,12 @@ echo "   ✅ Transaction History: ENABLED"
 echo "   📊 Full RPC features with slightly conservative parameters"
 echo "=================================================================="
 
-# Auto-detect validator command
-if command -v agave-validator &>/dev/null; then
-  VALIDATOR_CMD="agave-validator"
-elif command -v solana-validator &>/dev/null; then
+# Jito-Solana 构建产物为 solana-validator
+if command -v solana-validator &>/dev/null; then
   VALIDATOR_CMD="solana-validator"
 else
-  echo "❌ ERROR: No validator command found!"
-  echo "   Please install Jito Solana validator first"
-  echo "   Run: bash install-jito-validator.sh"
+  echo "❌ ERROR: solana-validator not found!"
+  echo "   Please install Jito Solana first: bash 2-install-jito-validator.sh"
   exit 1
 fi
 

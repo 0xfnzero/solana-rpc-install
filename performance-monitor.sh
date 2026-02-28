@@ -45,10 +45,10 @@ info() {
     echo -e "${GREEN}[INFO]${NC} $*"
 }
 
-# Check if validator is running
+# Check if validator is running (Jito-Solana 使用 solana-validator)
 check_validator_running() {
-    if pgrep -x agave-validator >/dev/null; then
-        VALIDATOR_PID=$(pgrep -x agave-validator)
+    if pgrep -x solana-validator >/dev/null; then
+        VALIDATOR_PID=$(pgrep -x solana-validator)
         return 0
     else
         alert "Validator is NOT running!"
