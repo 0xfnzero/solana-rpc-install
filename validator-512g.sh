@@ -21,11 +21,13 @@ echo "   ✅ Transaction History: ENABLED"
 echo "   ⚡ Production-grade performance and reliability"
 echo "=================================================================="
 
-# Auto-detect validator command
-if command -v solana-validator &>/dev/null; then
+# Jito/Agave build may produce agave-validator or solana-validator
+if command -v agave-validator &>/dev/null; then
+  VALIDATOR_CMD="agave-validator"
+elif command -v solana-validator &>/dev/null; then
   VALIDATOR_CMD="solana-validator"
 else
-  echo "❌ ERROR: solana-validator not found!"
+  echo "❌ ERROR: validator not found (agave-validator or solana-validator)!"
   echo "   Please install Jito Solana first: bash 2-install-jito-validator.sh"
   exit 1
 fi

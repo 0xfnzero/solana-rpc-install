@@ -62,7 +62,7 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_STEP4="编译 Jito Solana Validator..."
   M_BUILD_TIME="这将需要 15-30 分钟，取决于 CPU 性能"
   M_BUILDING="开始编译 validator..."
-  M_BUILD_FAIL="编译失败: solana-validator 未生成到 %s/bin"
+  M_BUILD_FAIL="编译失败: validator 未生成到 %s/bin (应有 agave-validator 或 solana-validator)"
   M_BUILD_DONE="编译完成"
   M_STEP5="验证安装..."
   M_FOUND_VAL="找到 validator: %s"
@@ -116,7 +116,7 @@ else
   M_STEP4="Build Jito Solana Validator..."
   M_BUILD_TIME="This may take 15-30 minutes depending on CPU"
   M_BUILDING="Building validator..."
-  M_BUILD_FAIL="Build failed: solana-validator not found at %s/bin"
+  M_BUILD_FAIL="Build failed: no validator binary at %s/bin (expected agave-validator or solana-validator)"
   M_BUILD_DONE="Build complete"
   M_STEP5="Verify installation..."
   M_FOUND_VAL="Found validator: %s"
@@ -258,7 +258,13 @@ export CI_COMMIT
 mkdir -p "$SOLANA_INSTALL_DIR"
 scripts/cargo-install-all.sh --validator-only "$SOLANA_INSTALL_DIR"
 
-if [[ ! -f "$SOLANA_INSTALL_DIR/bin/solana-validator" ]]; then
+# Per jito-solana scripts/agave-build-lists.sh, AGAVE_BINS_VAL_OP includes agave-validator.
+# Check that first; fallback to solana-validator for older or alternate builds.
+if [[ -f "$SOLANA_INSTALL_DIR/bin/agave-validator" ]]; then
+  VALIDATOR_CMD="agave-validator"
+elif [[ -f "$SOLANA_INSTALL_DIR/bin/solana-validator" ]]; then
+  VALIDATOR_CMD="solana-validator"
+else
   printf "   ❌ $M_BUILD_FAIL\n" "$SOLANA_INSTALL_DIR"
   exit 1
 fi
@@ -267,8 +273,6 @@ echo "   ✓ $M_BUILD_DONE"
 
 echo ""
 echo "==> 5) $M_STEP5"
-
-VALIDATOR_CMD="solana-validator"
 printf "   ✓ $M_FOUND_VAL\n" "$VALIDATOR_CMD"
 echo "   - $M_BINARIES"
 ls -lh "$SOLANA_INSTALL_DIR/bin/" | grep -E "validator|solana" | head -10
