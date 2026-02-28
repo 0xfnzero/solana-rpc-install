@@ -12,6 +12,7 @@ set -euo pipefail
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LANG_CACHE_FILE="$SCRIPT_DIR/solana-rpc-lang"
 # shellcheck source=lang.sh
 source "$SCRIPT_DIR/lang.sh"
 

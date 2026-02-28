@@ -3,7 +3,7 @@
 # Source this file, then call prompt_lang to set LANG_SCRIPT (zh or en)
 # Language choice is cached so user only selects once.
 
-LANG_CACHE_FILE="${LANG_CACHE_FILE:-/root/.solana-rpc-lang}"
+LANG_CACHE_FILE="${LANG_CACHE_FILE:-/root/solana-rpc-lang}"
 
 prompt_lang() {
   # Use cached language if valid
