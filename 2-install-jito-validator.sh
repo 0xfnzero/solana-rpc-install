@@ -28,9 +28,17 @@ GEYSER_CFG="$BIN/yellowstone-config.json"
 SERVICE_NAME=${SERVICE_NAME:-sol}
 SOLANA_INSTALL_DIR="/usr/local/solana"
 BUILD_DIR="/tmp/jito-solana-build"
+DEFAULT_SOLANA_VERSION="v4.0.0"
 
 # Yellowstone artifacts
-YELLOWSTONE_TARBALL_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v12.1.0%2Bsolana.3.1.8/yellowstone-grpc-geyser-release24-x86_64-unknown-linux-gnu.tar.bz2"
+# v13.1.0 is the latest non-Triton Yellowstone gRPC release for the Solana 4.0 line.
+YELLOWSTONE_RELEASE_TAG="v13.1.0+solana.4.0.0-rc.0"
+YELLOWSTONE_RELEASE_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v13.1.0%2Bsolana.4.0.0-rc.0"
+YELLOWSTONE_GEYSER_SO_URL="$YELLOWSTONE_RELEASE_URL/libyellowstone_grpc_geyser.so"
+YELLOWSTONE_GEYSER_SO_SHA256="5c0a1ef52da813850f315457bd2db506f38cf83ba02b9c5a433c11a1c85b980e"
+YELLOWSTONE_GEYSER_DIR="$BIN/yellowstone-grpc-geyser-release"
+YELLOWSTONE_GEYSER_LIB_DIR="$YELLOWSTONE_GEYSER_DIR/lib"
+YELLOWSTONE_GEYSER_LIB="$YELLOWSTONE_GEYSER_LIB_DIR/libyellowstone_grpc_geyser.so"
 
 if [[ $EUID -ne 0 ]]; then
   echo "[ERROR] Please run as root: sudo bash $0" >&2
@@ -43,9 +51,9 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_HEADER="Jito Solana Validator - 从源码编译安装"
   M_STEP0="选择 Jito Solana 版本..."
   M_SEE_TAGS="查看所有版本: https://github.com/jito-foundation/jito-solana/tags"
-  M_ENTER_HINT="(页面显示 v3.1.8-jito 格式，您只需输入 v3.1.8)"
-  M_VER_PROMPT="请输入 Jito Solana 版本号 (例如 v3.1.8): "
-  M_VER_ERR="[错误] 版本号格式不正确，应为 vX.Y.Z 格式 (例如 v3.1.8)"
+  M_ENTER_HINT="(页面显示 v4.0.0-jito 格式，您只需输入 v4.0.0；预发布版可输入 v4.0.0-rc.1)"
+  M_VER_PROMPT="请输入 Jito Solana 版本号 [默认 v4.0.0]: "
+  M_VER_ERR="[错误] 版本号格式不正确，应为 vX.Y.Z 或 vX.Y.Z-rc.N 格式 (例如 v4.0.0)"
   M_VER_SUFFIX="只输入版本号，不要包含 -jito 后缀"
   M_WILL_INSTALL="将安装版本:"
   M_STEP1="安装编译依赖（与 Jito 官方文档一致）..."
@@ -81,6 +89,8 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_STEP11="配置 systemd 服务..."
   M_SVC_UPDATED="systemd 服务配置已更新"
   M_STEP12="下载 Yellowstone gRPC geyser..."
+  M_GEYSER_VERSION="Yellowstone gRPC 版本: %s"
+  M_GEYSER_VERIFY="校验 Yellowstone gRPC geyser..."
   M_GEYSER_DONE="Yellowstone geyser 配置完成"
   M_STEP13="复制辅助脚本..."
   M_HELPERS_COPIED="辅助脚本已复制"
@@ -97,9 +107,9 @@ else
   M_HEADER="Jito Solana Validator - Build and install from source"
   M_STEP0="Select Jito Solana version..."
   M_SEE_TAGS="See all tags: https://github.com/jito-foundation/jito-solana/tags"
-  M_ENTER_HINT="(page shows v3.1.8-jito; enter only v3.1.8)"
-  M_VER_PROMPT="Enter Jito Solana version (e.g. v3.1.8): "
-  M_VER_ERR="[ERROR] Invalid version format. Use vX.Y.Z (e.g. v3.1.8)"
+  M_ENTER_HINT="(page shows v4.0.0-jito; enter only v4.0.0; prereleases like v4.0.0-rc.1 are allowed)"
+  M_VER_PROMPT="Enter Jito Solana version [default v4.0.0]: "
+  M_VER_ERR="[ERROR] Invalid version format. Use vX.Y.Z or vX.Y.Z-rc.N (e.g. v4.0.0)"
   M_VER_SUFFIX="Enter version only, without -jito suffix"
   M_WILL_INSTALL="Will install:"
   M_STEP1="Install build dependencies (per Jito docs)..."
@@ -135,6 +145,8 @@ else
   M_STEP11="Configure systemd service..."
   M_SVC_UPDATED="systemd service updated"
   M_STEP12="Download Yellowstone gRPC geyser..."
+  M_GEYSER_VERSION="Yellowstone gRPC version: %s"
+  M_GEYSER_VERIFY="Verify Yellowstone gRPC geyser..."
   M_GEYSER_DONE="Yellowstone geyser configured"
   M_STEP13="Copy helper scripts..."
   M_HELPERS_COPIED="Helper scripts copied"
@@ -164,10 +176,16 @@ echo "   $M_ENTER_HINT"
 echo ""
 
 while true; do
-  read -p "$M_VER_PROMPT" SOLANA_VERSION
+  read -r -p "$M_VER_PROMPT" SOLANA_VERSION
+  SOLANA_VERSION=${SOLANA_VERSION:-$DEFAULT_SOLANA_VERSION}
+
+  if [[ "$SOLANA_VERSION" == *-jito ]]; then
+    echo "$M_VER_SUFFIX"
+    continue
+  fi
 
   # Validate version format
-  if [[ ! "$SOLANA_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  if [[ ! "$SOLANA_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$ ]]; then
     echo "$M_VER_ERR"
     echo "        $M_VER_SUFFIX"
     continue
@@ -349,9 +367,13 @@ echo "   ✓ $M_SVC_UPDATED"
 
 echo ""
 echo "==> 12) $M_STEP12"
-cd "$BIN"
-wget -q --show-progress "$YELLOWSTONE_TARBALL_URL" -O yellowstone-grpc-geyser.tar.bz2
-tar -xjf yellowstone-grpc-geyser.tar.bz2
+printf "   - $M_GEYSER_VERSION\n" "$YELLOWSTONE_RELEASE_TAG"
+rm -rf "$YELLOWSTONE_GEYSER_DIR"
+mkdir -p "$YELLOWSTONE_GEYSER_LIB_DIR"
+wget -q --show-progress "$YELLOWSTONE_GEYSER_SO_URL" -O "$YELLOWSTONE_GEYSER_LIB"
+echo "   - $M_GEYSER_VERIFY"
+echo "$YELLOWSTONE_GEYSER_SO_SHA256  $YELLOWSTONE_GEYSER_LIB" | sha256sum -c -
+chmod 755 "$YELLOWSTONE_GEYSER_LIB"
 cp -f "$SCRIPT_DIR/yellowstone-config.json" "$GEYSER_CFG"
 echo "   ✓ $M_GEYSER_DONE"
 

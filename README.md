@@ -73,8 +73,8 @@ bash verify-mounts.sh
 
 # Step 2: Build Jito Solana from source (15-30 minutes)
 bash 2-install-jito-validator.sh
-# Enter version when prompted (e.g., v3.0.12)
-# Enhanced version validation with network fallback
+# Press Enter to install v4.0.0, or enter a specific version (e.g., v4.0.0-rc.1)
+# Supports stable, rc, and beta Jito tags
 
 # Step 3: Download snapshot and start node
 bash 3-start.sh
@@ -224,11 +224,11 @@ All configurations are based on **proven production deployments** with thousands
 ┌─────────────────────────────────────────────────────────┐
 │                   Solana RPC Node Stack                  │
 ├─────────────────────────────────────────────────────────┤
-│  Jito Solana Validator (v3.0.x)                         │
+│  Jito Solana Validator (v4.0.x)                         │
 │  ├─ Installation: Source compilation from GitHub        │
 │  │  • agave-validator with full MEV support             │
 │  │  • 100% Jito Foundation compliant (15-30 min)        │
-│  ├─ Yellowstone gRPC Plugin v10.0.1 (Data streaming)   │
+│  ├─ Yellowstone gRPC v13.1.0 (Solana 4.0)              │
 │  ├─ RPC HTTP/WebSocket (Port 8899/8900)                 │
 │  └─ Accounts & Ledger (Optimized RocksDB)               │
 ├─────────────────────────────────────────────────────────┤
