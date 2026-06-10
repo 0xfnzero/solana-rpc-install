@@ -2,6 +2,56 @@
 
 set -e  # 遇到错误就退出
 
+SNAPSHOT_DIR="/root/sol/snapshot"
+
+validate_snapshot_download() {
+  local snapshot_dir="$1"
+
+  shopt -s nullglob
+  local full_snapshots=(
+    "$snapshot_dir"/snapshot-*.tar.zst
+    "$snapshot_dir"/snapshot-*.tar.bz2
+    "$snapshot_dir"/snapshot-*.tar
+  )
+  local incremental_snapshots=(
+    "$snapshot_dir"/incremental-snapshot-*.tar.zst
+    "$snapshot_dir"/incremental-snapshot-*.tar.bz2
+    "$snapshot_dir"/incremental-snapshot-*.tar
+  )
+  local partial_files=(
+    "$snapshot_dir"/tmp-*
+    "$snapshot_dir"/*.part
+    "$snapshot_dir"/*.tmp
+    "$snapshot_dir"/*.aria2
+  )
+  shopt -u nullglob
+
+  if ((${#full_snapshots[@]} == 0)); then
+    echo "ERROR: No full snapshot file found in $snapshot_dir"
+    return 1
+  fi
+
+  if ((${#partial_files[@]} > 0)); then
+    echo "ERROR: Partial snapshot download files remain:"
+    printf '  %s\n' "${partial_files[@]}"
+    return 1
+  fi
+
+  local file
+  for file in "${full_snapshots[@]}" "${incremental_snapshots[@]}"; do
+    if [[ ! -s "$file" ]]; then
+      echo "ERROR: Snapshot file is empty or unreadable: $file"
+      return 1
+    fi
+  done
+
+  echo "Snapshot files verified:"
+  printf '  %s\n' "${full_snapshots[@]}"
+  if ((${#incremental_snapshots[@]} > 0)); then
+    printf '  %s\n' "${incremental_snapshots[@]}"
+  fi
+}
+
 # 停止 sol 服务
 echo "Stopping sol service..."
 systemctl stop sol
@@ -12,7 +62,7 @@ rm -rf solana-rpc.log
 dirs=(
   "/root/sol/ledger"
   "/root/sol/accounts"
-  "/root/sol/snapshot"
+  "$SNAPSHOT_DIR"
 )
 
 # 清空目录内容并确保目录存在
@@ -56,7 +106,16 @@ pip3 install -r requirements.txt
 
 # 运行 snapshot finder
 echo "Running snapshot-finder..."
-python3 snapshot-finder.py --snapshot_path /root/sol/snapshot
+set +e
+python3 snapshot-finder.py --snapshot_path "$SNAPSHOT_DIR"
+snapshot_finder_status=$?
+set -e
+
+if [[ $snapshot_finder_status -ne 0 ]]; then
+  echo "snapshot-finder exited with status $snapshot_finder_status; verifying downloaded snapshot files..."
+fi
+
+validate_snapshot_download "$SNAPSHOT_DIR"
 
 # 重启 sol 服务
 echo "Starting sol service..."

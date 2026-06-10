@@ -18,6 +18,54 @@ ACCOUNTS=${ACCOUNTS:-/root/sol/accounts}
 SNAPSHOT=${SNAPSHOT:-/root/sol/snapshot}
 LOGFILE=/root/solana-rpc.log
 
+validate_snapshot_download() {
+  local snapshot_dir="$1"
+
+  shopt -s nullglob
+  local full_snapshots=(
+    "$snapshot_dir"/snapshot-*.tar.zst
+    "$snapshot_dir"/snapshot-*.tar.bz2
+    "$snapshot_dir"/snapshot-*.tar
+  )
+  local incremental_snapshots=(
+    "$snapshot_dir"/incremental-snapshot-*.tar.zst
+    "$snapshot_dir"/incremental-snapshot-*.tar.bz2
+    "$snapshot_dir"/incremental-snapshot-*.tar
+  )
+  local partial_files=(
+    "$snapshot_dir"/tmp-*
+    "$snapshot_dir"/*.part
+    "$snapshot_dir"/*.tmp
+    "$snapshot_dir"/*.aria2
+  )
+  shopt -u nullglob
+
+  if ((${#full_snapshots[@]} == 0)); then
+    echo "  ❌ No full snapshot file found in $snapshot_dir"
+    return 1
+  fi
+
+  if ((${#partial_files[@]} > 0)); then
+    echo "  ❌ Partial snapshot download files remain:"
+    printf '     %s\n' "${partial_files[@]}"
+    return 1
+  fi
+
+  local file
+  for file in "${full_snapshots[@]}" "${incremental_snapshots[@]}"; do
+    if [[ ! -s "$file" ]]; then
+      echo "  ❌ Snapshot file is empty or unreadable: $file"
+      return 1
+    fi
+  done
+
+  echo "  ✅ Snapshot files verified"
+  printf '     %s\n' "${full_snapshots[@]}"
+  if ((${#incremental_snapshots[@]} > 0)); then
+    printf '     %s\n' "${incremental_snapshots[@]}"
+  fi
+}
+
 if [[ $EUID -ne 0 ]]; then
   echo "[ERROR] Please run as root: sudo bash $0" >&2
   exit 1
@@ -217,7 +265,16 @@ echo "  🚀 $M_SPEED"
 echo ""
 
 # Run snapshot finder
+set +e
 python3 snapshot-finder.py --snapshot_path "$SNAPSHOT"
+snapshot_finder_status=$?
+set -e
+
+if [[ $snapshot_finder_status -ne 0 ]]; then
+  echo "  ⚠️  snapshot-finder exited with status $snapshot_finder_status; verifying downloaded snapshot files..."
+fi
+
+validate_snapshot_download "$SNAPSHOT"
 
 echo ""
 echo "  ✅ $M_SNAP_DONE"
