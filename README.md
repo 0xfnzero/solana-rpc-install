@@ -39,6 +39,23 @@
 
 ---
 
+## What This Project Provides
+
+`solana-rpc-install` is a focused installer for running a Solana RPC node on Ubuntu with Jito Solana / Agave validator, Yellowstone gRPC, systemd service management, NVMe disk mounting, snapshot bootstrap, and production-oriented Linux tuning.
+
+It is built for operators who need a practical Solana mainnet RPC deployment guide for trading bots, indexing pipelines, DEX event streaming, MEV infrastructure, or private RPC workloads without hand-assembling every validator, Geyser, storage, and monitoring setting.
+
+## Included Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `1-prepare.sh` | Mount NVMe data disks, create Solana directories, and apply Linux system optimizations |
+| `2-install-jito-validator.sh` | Build and install Jito Solana / Agave validator from source |
+| `3-start.sh` | Download snapshots, install the systemd service, and start the RPC node |
+| `validator.sh` | Auto-select the right validator profile for 128GB, 192GB, 256GB, or 512GB+ RAM |
+| `yellowstone-config.json` | Production-tested Yellowstone gRPC Geyser configuration |
+| `performance-monitor.sh`, `get_health.sh`, `catchup.sh` | Monitor node health, memory, performance, and sync progress |
+
 ## 🎯 System Requirements
 
 **Minimum Configuration:**

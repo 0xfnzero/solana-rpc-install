@@ -39,6 +39,23 @@
 
 ---
 
+## 这个项目适合什么场景
+
+`solana-rpc-install` 是一个面向 Ubuntu 服务器的 Solana RPC 节点安装工具，覆盖 Jito Solana / Agave validator、Yellowstone gRPC、systemd 服务管理、NVMe 磁盘挂载、快照启动和生产环境 Linux 参数优化。
+
+它适合需要部署 Solana mainnet RPC 的开发者和节点运维人员，常见用途包括交易机器人、链上数据索引、DEX 事件流、MEV 基础设施、私有 RPC 服务，以及需要快速复现稳定节点配置的测试环境。
+
+## 脚本索引
+
+| 脚本 | 用途 |
+|------|------|
+| `1-prepare.sh` | 挂载 NVMe 数据盘、创建 Solana 目录并应用 Linux 系统优化 |
+| `2-install-jito-validator.sh` | 从源码构建并安装 Jito Solana / Agave validator |
+| `3-start.sh` | 下载快照、安装 systemd 服务并启动 RPC 节点 |
+| `validator.sh` | 根据 128GB、192GB、256GB、512GB+ 内存自动选择 validator 配置 |
+| `yellowstone-config.json` | 经过生产测试的 Yellowstone gRPC Geyser 配置 |
+| `performance-monitor.sh`, `get_health.sh`, `catchup.sh` | 查看节点健康状态、内存、性能和同步进度 |
+
 ## 🎯 系统要求
 
 **最低配置：**
