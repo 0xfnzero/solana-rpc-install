@@ -90,7 +90,7 @@ bash verify-mounts.sh
 
 # 步骤 2: 从源码构建 Jito Solana (15-30 分钟)
 bash 2-install-jito-validator.sh
-# 直接回车安装 v4.0.0，或输入指定版本 (例如: v4.0.0-rc.1)
+# 直接回车安装 v4.1.1，或输入指定版本 (例如: v4.1.0-rc.1)
 # 支持 stable、rc、beta 等 Jito 标签
 
 # 步骤 3: 下载快照并启动节点
@@ -225,7 +225,7 @@ bash /root/performance-monitor.sh snapshot
 | **8899** | HTTP | RPC 端点 |
 | **8900** | WebSocket | 实时订阅 |
 | **10900** | gRPC | 高性能数据流 |
-| **8000-8025** | TCP/UDP | 验证者通信 (动态) |
+| **8000-8030** | TCP/UDP | 验证者通信 (动态) |
 
 ## 📈 性能指标
 
@@ -241,11 +241,11 @@ bash /root/performance-monitor.sh snapshot
 ┌─────────────────────────────────────────────────────────┐
 │                   Solana RPC 节点堆栈                     │
 ├─────────────────────────────────────────────────────────┤
-│  Jito Solana 验证者 (v4.0.x)                            │
+│  Jito Solana 验证者 (v4.1.x)                            │
 │  ├─ 安装方式: 从 GitHub 源码编译                         │
 │  │  • agave-validator 完整 MEV 支持                     │
 │  │  • 100% 符合 Jito Foundation 标准 (15-30 分钟)      │
-│  ├─ Yellowstone gRPC v13.1.0 (Solana 4.0)              │
+│  ├─ Yellowstone gRPC 自动匹配 Solana 版本               │
 │  ├─ RPC HTTP/WebSocket (端口 8899/8900)                │
 │  └─ 账户 & 账本 (优化的 RocksDB)                        │
 ├─────────────────────────────────────────────────────────┤

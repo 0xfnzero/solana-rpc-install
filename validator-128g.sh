@@ -13,6 +13,8 @@
 export RUST_LOG=warn
 export RUST_BACKTRACE=1
 export SOLANA_METRICS_CONFIG=""
+DYNAMIC_PORT_RANGE=${DYNAMIC_PORT_RANGE:-8000-8030}
+GOSSIP_PORT=${GOSSIP_PORT:-8000}
 
 TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
 
@@ -56,7 +58,7 @@ exec $VALIDATOR_CMD \
  --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ \
  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d \
  --only-known-rpc --no-port-check \
- --dynamic-port-range 8000-8025 --gossip-port 8000 \
+ --dynamic-port-range "$DYNAMIC_PORT_RANGE" --gossip-port "$GOSSIP_PORT" \
  --rpc-bind-address 0.0.0.0 --rpc-port 8899 \
  --full-rpc-api --private-rpc --rpc-threads 8 \
  --rpc-max-multiple-accounts 50 \
@@ -77,7 +79,6 @@ exec $VALIDATOR_CMD \
  --accounts-db-cache-limit-mb 8192 \
  --accounts-index-scan-results-limit-mb 256 \
  --accounts-shrink-ratio 0.90 --accounts-index-bins 2048 \
- --block-production-method central-scheduler \
  --health-check-slot-distance 150 \
- --no-voting --allow-private-addr --bind-address 0.0.0.0 \
+ --no-voting --allow-private-addr --no-xdp --bind-address 0.0.0.0 \
  --log-messages-bytes-limit 201326592

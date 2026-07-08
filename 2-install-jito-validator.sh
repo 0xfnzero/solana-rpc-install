@@ -28,17 +28,87 @@ GEYSER_CFG="$BIN/yellowstone-config.json"
 SERVICE_NAME=${SERVICE_NAME:-sol}
 SOLANA_INSTALL_DIR="/usr/local/solana"
 BUILD_DIR="/tmp/jito-solana-build"
-DEFAULT_SOLANA_VERSION="v4.0.0"
+DEFAULT_SOLANA_VERSION="v4.1.1"
+VALIDATOR_DYNAMIC_PORT_RANGE="8000-8030"
+VALIDATOR_UFW_PORT_RANGE="${VALIDATOR_DYNAMIC_PORT_RANGE/-/:}"
 
-# Yellowstone artifacts
-# v13.1.0 is the latest non-Triton Yellowstone gRPC release for the Solana 4.0 line.
-YELLOWSTONE_RELEASE_TAG="v13.1.0+solana.4.0.0-rc.0"
-YELLOWSTONE_RELEASE_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v13.1.0%2Bsolana.4.0.0-rc.0"
-YELLOWSTONE_GEYSER_SO_URL="$YELLOWSTONE_RELEASE_URL/libyellowstone_grpc_geyser.so"
-YELLOWSTONE_GEYSER_SO_SHA256="5c0a1ef52da813850f315457bd2db506f38cf83ba02b9c5a433c11a1c85b980e"
+# Yellowstone artifacts are resolved after the Jito Solana version is selected.
+YELLOWSTONE_RELEASE_TAG=""
+YELLOWSTONE_GEYSER_SO_URL=""
+YELLOWSTONE_GEYSER_SO_SHA256=""
 YELLOWSTONE_GEYSER_DIR="$BIN/yellowstone-grpc-geyser-release"
 YELLOWSTONE_GEYSER_LIB_DIR="$YELLOWSTONE_GEYSER_DIR/lib"
 YELLOWSTONE_GEYSER_LIB="$YELLOWSTONE_GEYSER_LIB_DIR/libyellowstone_grpc_geyser.so"
+
+resolve_yellowstone_release() {
+  local solana_version="$1"
+  local clean_version="${solana_version#v}"
+  local version_minor
+
+  version_minor=$(sed -E 's/^([0-9]+\.[0-9]+)\..*$/\1/' <<<"$clean_version")
+
+  local resolved
+  resolved=$(python3 - "$clean_version" "$version_minor" <<'PY'
+import json
+import re
+import sys
+import urllib.request
+
+exact_version = sys.argv[1]
+minor_version = sys.argv[2]
+api_url = "https://api.github.com/repos/rpcpool/yellowstone-grpc/releases?per_page=100"
+
+with urllib.request.urlopen(api_url, timeout=30) as response:
+    releases = json.load(response)
+
+def find_asset(release):
+    for asset in release.get("assets", []):
+        if asset.get("name") == "libyellowstone_grpc_geyser.so":
+            digest = asset.get("digest") or ""
+            if digest.startswith("sha256:"):
+                digest = digest[len("sha256:"):]
+            return asset.get("browser_download_url", ""), digest
+    return "", ""
+
+candidates = []
+for release in releases:
+    tag = release.get("tag_name", "")
+    url, digest = find_asset(release)
+    if not url or not digest:
+        continue
+
+    exact_match = f"+solana.{exact_version}" in tag
+    minor_match = f"+solana.{minor_version}." in tag
+    if not exact_match and not minor_match:
+        continue
+
+    stable = not release.get("prerelease", False) and not re.search(r"(?i)(?:-rc|beta|alpha)", tag)
+    score = (
+        2 if exact_match else 1,
+        1 if stable else 0,
+        release.get("published_at") or release.get("created_at") or "",
+    )
+    candidates.append((score, tag, url, digest))
+
+if not candidates:
+    raise SystemExit(
+        f"No compatible yellowstone-grpc release found for Solana {exact_version}. "
+        "Check https://github.com/rpcpool/yellowstone-grpc/releases"
+    )
+
+candidates.sort(reverse=True)
+_, tag, url, digest = candidates[0]
+print(f"{tag}\t{url}\t{digest}")
+PY
+)
+
+  IFS=$'\t' read -r YELLOWSTONE_RELEASE_TAG YELLOWSTONE_GEYSER_SO_URL YELLOWSTONE_GEYSER_SO_SHA256 <<<"$resolved"
+
+  if [[ -z "$YELLOWSTONE_RELEASE_TAG" || -z "$YELLOWSTONE_GEYSER_SO_URL" || -z "$YELLOWSTONE_GEYSER_SO_SHA256" ]]; then
+    echo "[ERROR] Failed to resolve Yellowstone gRPC release metadata" >&2
+    exit 1
+  fi
+}
 
 if [[ $EUID -ne 0 ]]; then
   echo "[ERROR] Please run as root: sudo bash $0" >&2
@@ -51,9 +121,9 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_HEADER="Jito Solana Validator - 从源码编译安装"
   M_STEP0="选择 Jito Solana 版本..."
   M_SEE_TAGS="查看所有版本: https://github.com/jito-foundation/jito-solana/tags"
-  M_ENTER_HINT="(页面显示 v4.0.0-jito 格式，您只需输入 v4.0.0；预发布版可输入 v4.0.0-rc.1)"
-  M_VER_PROMPT="请输入 Jito Solana 版本号 [默认 v4.0.0]: "
-  M_VER_ERR="[错误] 版本号格式不正确，应为 vX.Y.Z 或 vX.Y.Z-rc.N 格式 (例如 v4.0.0)"
+  M_ENTER_HINT="(页面显示 v4.1.1-jito 格式，您只需输入 v4.1.1；预发布版可输入 v4.1.0-rc.1)"
+  M_VER_PROMPT="请输入 Jito Solana 版本号 [默认 v4.1.1]: "
+  M_VER_ERR="[错误] 版本号格式不正确，应为 vX.Y.Z 或 vX.Y.Z-rc.N 格式 (例如 v4.1.1)"
   M_VER_SUFFIX="只输入版本号，不要包含 -jito 后缀"
   M_WILL_INSTALL="将安装版本:"
   M_STEP1="安装编译依赖（与 Jito 官方文档一致）..."
@@ -107,9 +177,9 @@ else
   M_HEADER="Jito Solana Validator - Build and install from source"
   M_STEP0="Select Jito Solana version..."
   M_SEE_TAGS="See all tags: https://github.com/jito-foundation/jito-solana/tags"
-  M_ENTER_HINT="(page shows v4.0.0-jito; enter only v4.0.0; prereleases like v4.0.0-rc.1 are allowed)"
-  M_VER_PROMPT="Enter Jito Solana version [default v4.0.0]: "
-  M_VER_ERR="[ERROR] Invalid version format. Use vX.Y.Z or vX.Y.Z-rc.N (e.g. v4.0.0)"
+  M_ENTER_HINT="(page shows v4.1.1-jito; enter only v4.1.1; prereleases like v4.1.0-rc.1 are allowed)"
+  M_VER_PROMPT="Enter Jito Solana version [default v4.1.1]: "
+  M_VER_ERR="[ERROR] Invalid version format. Use vX.Y.Z or vX.Y.Z-rc.N (e.g. v4.1.1)"
   M_VER_SUFFIX="Enter version only, without -jito suffix"
   M_WILL_INSTALL="Will install:"
   M_STEP1="Install build dependencies (per Jito docs)..."
@@ -213,11 +283,15 @@ apt install -y \
     make \
     libprotobuf-dev \
     protobuf-compiler \
+    python3 \
     git \
     wget \
     curl \
     bzip2 \
     ufw
+
+resolve_yellowstone_release "$SOLANA_VERSION"
+printf "Yellowstone gRPC: %s\n" "$YELLOWSTONE_RELEASE_TAG"
 
 echo ""
 echo "==> 2) $M_STEP2"
@@ -331,8 +405,8 @@ echo ""
 echo "==> 9) $M_STEP9"
 ufw --force enable
 ufw allow 22
-ufw allow 8000:8025/tcp
-ufw allow 8000:8025/udp
+ufw allow "$VALIDATOR_UFW_PORT_RANGE"/tcp
+ufw allow "$VALIDATOR_UFW_PORT_RANGE"/udp
 ufw allow 8899   # HTTP
 ufw allow 8900   # WS
 ufw allow 10900  # GRPC
