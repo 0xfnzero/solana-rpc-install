@@ -78,5 +78,5 @@ exec $VALIDATOR_CMD \
  --accounts-index-scan-results-limit-mb 256 \
  --accounts-shrink-ratio 0.90 --accounts-index-bins 4096 \
  --health-check-slot-distance 150 \
- --no-voting --allow-private-addr --no-xdp --bind-address 0.0.0.0 \
+ --no-voting --allow-private-addr --bind-address 0.0.0.0 \
  --log-messages-bytes-limit 268435456
