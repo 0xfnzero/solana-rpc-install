@@ -2,6 +2,9 @@
 
 set -e  # 遇到错误就退出
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SERVICE_NAME=${SERVICE_NAME:-sol}
+BIN_DIR="/root/sol/bin"
 SNAPSHOT_DIR="/root/sol/snapshot"
 
 validate_snapshot_download() {
@@ -52,9 +55,45 @@ validate_snapshot_download() {
   fi
 }
 
+sync_runtime_files() {
+  local required_files=(
+    "validator.sh"
+    "validator-128g.sh"
+    "validator-192g.sh"
+    "validator-256g.sh"
+    "validator-512g.sh"
+    "select-validator.sh"
+    "yellowstone-config.json"
+  )
+
+  for file in "${required_files[@]}"; do
+    if [[ ! -f "$SCRIPT_DIR/$file" ]]; then
+      echo "Runtime source files not found in $SCRIPT_DIR; skip runtime script sync"
+      echo "If validator startup still fails, run this script from the solana-rpc-install repo or rerun 2-install-jito-validator.sh"
+      return 0
+    fi
+  done
+
+  echo "Syncing validator runtime scripts..."
+  mkdir -p "$BIN_DIR"
+  cp -f "$SCRIPT_DIR/validator.sh" "$BIN_DIR/validator.sh"
+  cp -f "$SCRIPT_DIR/validator-128g.sh" "$BIN_DIR/validator-128g.sh"
+  cp -f "$SCRIPT_DIR/validator-192g.sh" "$BIN_DIR/validator-192g.sh"
+  cp -f "$SCRIPT_DIR/validator-256g.sh" "$BIN_DIR/validator-256g.sh"
+  cp -f "$SCRIPT_DIR/validator-512g.sh" "$BIN_DIR/validator-512g.sh"
+  cp -f "$SCRIPT_DIR/select-validator.sh" "$BIN_DIR/select-validator.sh"
+  cp -f "$SCRIPT_DIR/yellowstone-config.json" "$BIN_DIR/yellowstone-config.json"
+  chmod +x "$BIN_DIR"/validator*.sh "$BIN_DIR/select-validator.sh"
+
+  if [[ -f "$SCRIPT_DIR/sol.service" ]]; then
+    cp -f "$SCRIPT_DIR/sol.service" "/etc/systemd/system/${SERVICE_NAME}.service"
+    systemctl daemon-reload
+  fi
+}
+
 # 停止 sol 服务
 echo "Stopping sol service..."
-systemctl stop sol
+systemctl stop "$SERVICE_NAME"
 
 rm -rf solana-rpc.log
 
@@ -119,6 +158,7 @@ validate_snapshot_download "$SNAPSHOT_DIR"
 
 # 重启 sol 服务
 echo "Starting sol service..."
-systemctl start sol
+sync_runtime_files
+systemctl start "$SERVICE_NAME"
 
 echo "Script completed successfully."

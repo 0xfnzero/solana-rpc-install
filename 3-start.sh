@@ -13,6 +13,7 @@ LANG_CACHE_FILE="$SCRIPT_DIR/solana-rpc-lang"
 source "$SCRIPT_DIR/lang.sh"
 
 SERVICE_NAME=${SERVICE_NAME:-sol}
+BIN=${BIN:-/root/sol/bin}
 LEDGER=${LEDGER:-/root/sol/ledger}
 ACCOUNTS=${ACCOUNTS:-/root/sol/accounts}
 SNAPSHOT=${SNAPSHOT:-/root/sol/snapshot}
@@ -64,6 +65,22 @@ validate_snapshot_download() {
   if ((${#incremental_snapshots[@]} > 0)); then
     printf '     %s\n' "${incremental_snapshots[@]}"
   fi
+}
+
+sync_runtime_files() {
+  echo "  - Sync validator runtime scripts..."
+  mkdir -p "$BIN"
+  cp -f "$SCRIPT_DIR/validator.sh" "$BIN/validator.sh"
+  cp -f "$SCRIPT_DIR/validator-128g.sh" "$BIN/validator-128g.sh"
+  cp -f "$SCRIPT_DIR/validator-192g.sh" "$BIN/validator-192g.sh"
+  cp -f "$SCRIPT_DIR/validator-256g.sh" "$BIN/validator-256g.sh"
+  cp -f "$SCRIPT_DIR/validator-512g.sh" "$BIN/validator-512g.sh"
+  cp -f "$SCRIPT_DIR/select-validator.sh" "$BIN/select-validator.sh"
+  cp -f "$SCRIPT_DIR/yellowstone-config.json" "$BIN/yellowstone-config.json"
+  chmod +x "$BIN"/validator*.sh "$BIN/select-validator.sh"
+
+  cp -f "$SCRIPT_DIR/sol.service" "/etc/systemd/system/${SERVICE_NAME}.service"
+  systemctl daemon-reload
 }
 
 if [[ $EUID -ne 0 ]]; then
@@ -281,6 +298,7 @@ echo "  ✅ $M_SNAP_DONE"
 
 echo ""
 echo "==> 6) $M_STEP6"
+sync_runtime_files
 systemctl start $SERVICE_NAME
 
 # Wait for service
@@ -294,6 +312,7 @@ else
   echo ""
   echo "$M_CHECK_LOGS"
   systemctl status $SERVICE_NAME --no-pager -l
+  journalctl -u "$SERVICE_NAME" -n 100 --no-pager || true
   exit 1
 fi
 
