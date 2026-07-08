@@ -74,7 +74,7 @@ exec $VALIDATOR_CMD \
  --limit-ledger-size 50000000 \
  --wal-recovery-mode skip_any_corrupted_record \
  --enable-rpc-transaction-history \
- --enable-accounts-disk-index \
+ --accounts-index-limit minimal \
  --accounts-db-access-storages-method file \
  --accounts-db-cache-limit-mb 8192 \
  --accounts-index-scan-results-limit-mb 256 \
