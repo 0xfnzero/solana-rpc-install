@@ -1,0 +1,25 @@
+/root/solana-rpc.log {
+    daily
+    rotate 7
+    maxsize 1G
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root root
+    sharedscripts
+    postrotate
+        /bin/systemctl kill -s USR1 sol.service >/dev/null 2>&1 || true
+    endscript
+}
+
+/var/log/solana-performance.log {
+    daily
+    rotate 7
+    maxsize 256M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root root
+}

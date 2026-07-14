@@ -55,6 +55,8 @@ It is built for operators who need a practical Solana mainnet RPC deployment gui
 | `validator.sh` | Auto-select the right validator profile for 128GB, 192GB, 256GB, or 512GB+ RAM |
 | `yellowstone-config.json` | Production-tested Yellowstone gRPC Geyser configuration |
 | `performance-monitor.sh`, `get_health.sh`, `catchup.sh` | Monitor node health, memory, performance, and sync progress |
+| `update-runtime.sh` | Apply runtime and monitoring fixes without deleting node data |
+| `logrotate-solana-rpc` | Rotate and compress validator and monitoring logs |
 
 ## 🎯 System Requirements
 
@@ -67,6 +69,11 @@ It is built for operators who need a practical Solana mainnet RPC deployment gui
   - **3 disks**: System + 2 data disks (optimal performance)
   - **4+ disks**: System + 3 data disks (accounts/ledger/snapshot separated)
 - **OS**: Ubuntu 22.04/24.04
+
+> **128GB/192GB scope:** These are constrained RPC profiles using a disk-backed
+> accounts index and indexing only the Address Lookup Table program. They are not
+> suitable for enabling every account index; Agave recommends substantially more
+> memory for that workload.
 - **Network**: High-bandwidth connection (1 Gbps+)
 
 ## 🚀 Quick Start
@@ -102,11 +109,11 @@ bash 3-start.sh
 
 ## ⚠️ Critical: Memory Management Details (Required for 128GB Systems)
 
-> **📌 Why Swap Might Be Needed?**
-> - **Memory peaks can exceed 128GB** during initial sync (115-130GB)
-> - Without swap, node may crash with OOM
-> - Swap provides safety buffer during sync phase
-> - After sync stabilizes, memory usage drops to 85-105GB
+Agave memory usage depends on the release, account index, RPC traffic, and
+Geyser subscriptions. Do not use a fixed GB threshold from an older release.
+For the common 128GB and 192GB deployments, the service does not configure a
+`MemoryHigh` throttle: replay latency must not be degraded by aggressive cgroup
+reclaim. `MemoryMax=95%` is retained only as a last-resort host safeguard.
 
 ### 🔧 Swap Management (Optional for 128GB Systems)
 
@@ -123,32 +130,19 @@ sudo bash add-swap-128g.sh
 # ✓ Adds 32GB swap with swappiness=10 (minimal usage)
 ```
 
-**Remove Swap** (After sync completes)
+**Evaluate Swap After Sync**
 
-Once synchronization completes, memory usage stabilizes at 85-105GB, and you can remove swap for optimal performance:
+Check the service peak and Linux memory pressure after at least 24 hours:
 
 ```bash
 # Check current memory usage
-systemctl status sol | grep Memory
-
-# If memory peak < 105GB, safe to remove swap
-cd /root/solana-rpc-install
-sudo bash remove-swap.sh
+cat /proc/pressure/memory
+bash /root/performance-monitor.sh snapshot
 ```
 
-### 📊 Decision Guidelines
-
-| Memory Peak | Recommended Action |
-|-------------|-------------------|
-| **< 105GB** | ✅ Can remove swap for optimal performance |
-| **105-110GB** | ⚠️ Recommended to keep swap as buffer |
-| **> 110GB** | 🔴 Must keep swap to prevent OOM |
-
-**Note**: If memory issues occur after removing swap, you can always add it back:
-```bash
-cd /root/solana-rpc-install
-sudo bash add-swap-128g.sh
-```
+The monitor reads `memory.peak` directly on Ubuntu 22.04 and uses the systemd
+property on Ubuntu 24.04. Only remove swap when the reported peak remains
+comfortably below `MemoryMax`, swap is unused, and memory pressure is not sustained.
 
 ---
 
@@ -164,17 +158,41 @@ ShredStream provides low-latency block streaming for Jito MEV infrastructure.
 ## 📊 Monitoring & Management
 
 ```bash
-# Real-time logs
-journalctl -u sol -f
+# Follow the actual Agave validator runtime log
+bash /root/performance-monitor.sh logs
+
+# Follow systemd startup and restart logs
+bash /root/performance-monitor.sh journal
 
 # Performance monitoring
 bash /root/performance-monitor.sh snapshot
+
+# Complete diagnostic report (prints and saves under /var/log)
+bash /root/performance-monitor.sh diagnose
+
+# Continuous metrics: prints and appends to /var/log/solana-performance.log
+bash /root/performance-monitor.sh monitor
 
 # Health check (available after 30 minutes)
 /root/get_health.sh
 
 # Sync progress
 /root/catchup.sh
+```
+
+Log locations and retention:
+
+- Validator runtime: `/root/solana-rpc.log`
+- Continuous metrics: `/var/log/solana-performance.log`
+- Diagnostic reports: `/var/log/solana-diagnostic-YYYYMMDD-HHMMSS.log`
+- Validator and metrics logs rotate daily, are compressed, and retain 7 archives.
+
+Apply configuration updates to an existing node without clearing its data:
+
+```bash
+sudo bash update-runtime.sh
+# Restart during a maintenance window to activate validator and memory changes
+sudo bash update-runtime.sh --restart
 ```
 
 ## ✨ Key Features
@@ -214,9 +232,10 @@ All configurations are based on **proven production deployments** with thousands
   - TIER 3 (256GB): High-performance for 256-383GB systems
   - TIER 4 (512GB+): Maximum capacity for enterprise deployments
 - 🔄 **Automatic Disk Management**: Smart disk detection and mounting
-- 🛡️ **Production Ready**: Systemd service with dynamic memory limits and OOM protection
+- 🛡️ **Production Ready**: Systemd service with a last-resort host memory safeguard and OOM diagnostics
 - 🌐 **Network Resilience**: Enhanced version verification with graceful degradation
 - 📊 **Monitoring Tools**: Performance tracking and health checks included
+- 📸 **Load-only Snapshots**: Bootstrap from downloaded archives without continuously generating full snapshots
 
 ## 🔌 Network Ports
 
@@ -230,7 +249,7 @@ All configurations are based on **proven production deployments** with thousands
 ## 📈 Performance Metrics
 
 - **Snapshot Download**: Network-dependent (typically 200MB - 1GB/s)
-- **Memory Usage**: 60-110GB during sync, 85-105GB stable (optimized for 128GB systems)
+- **Memory Protection**: No latency-inducing soft throttle; 95% hard host safeguard
 - **Sync Time**: 1-3 hours (from snapshot)
 - **CPU Usage**: Multi-core optimized (32+ cores recommended)
 - **Stability**: Proven configuration with >99.9% uptime in production

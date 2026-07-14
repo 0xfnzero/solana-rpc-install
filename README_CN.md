@@ -55,6 +55,8 @@
 | `validator.sh` | 根据 128GB、192GB、256GB、512GB+ 内存自动选择 validator 配置 |
 | `yellowstone-config.json` | 经过生产测试的 Yellowstone gRPC Geyser 配置 |
 | `performance-monitor.sh`, `get_health.sh`, `catchup.sh` | 查看节点健康状态、内存、性能和同步进度 |
+| `update-runtime.sh` | 不删除节点数据，更新运行参数和监控脚本 |
+| `logrotate-solana-rpc` | 轮转并压缩 validator 和监控日志 |
 
 ## 🎯 系统要求
 
@@ -67,6 +69,8 @@
   - **3块盘**: 系统盘 + 2块数据盘 (最优性能)
   - **4+块盘**: 系统盘 + 3块数据盘 (accounts/ledger/snapshot 完全隔离)
 - **系统**: Ubuntu 22.04/24.04
+
+> **128GB/192GB 适用范围：** 这两档是使用磁盘后备 accounts index 的受限 RPC 配置，仅为 Address Lookup Table 程序建立索引，不适合开启全部账户索引；全量账户索引需要明显更大的内存。
 - **网络**: 高带宽连接 (1 Gbps+)
 
 ## 🚀 快速开始
@@ -102,11 +106,7 @@ bash 3-start.sh
 
 ## ⚠️ 重要：内存管理详解 (128GB 系统必读)
 
-> **📌 为什么可能需要 Swap？**
-> - **内存峰值可能超过 128GB**（初始同步期间可达 115-130GB）
-> - 没有 swap 可能导致 OOM 崩溃
-> - Swap 提供同步阶段的安全缓冲
-> - 同步稳定后，内存使用会降至 85-105GB
+Agave 内存占用取决于具体版本、账户索引、RPC 流量和 Geyser 订阅，不能继续使用旧版本的固定 GB 数值判断。针对社区常见的 128GB 和 192GB 节点，服务不设置 `MemoryHigh` 软限流，避免 cgroup 强回收拖慢 replay；仅保留 `MemoryMax=95%` 作为主机失控时的最后保护。
 
 ### 🔧 Swap 管理 (128GB 系统可选)
 
@@ -123,32 +123,17 @@ sudo bash add-swap-128g.sh
 # ✓ 添加 32GB swap，swappiness=10（最小化使用）
 ```
 
-**移除 Swap** (同步完成后)
+**同步后评估 Swap**
 
-同步完成后，内存使用会稳定在 85-105GB，此时可以移除 swap 以获得最佳性能：
+至少稳定运行 24 小时后，检查服务峰值和 Linux 内存压力：
 
 ```bash
 # 检查当前内存使用
-systemctl status sol | grep Memory
-
-# 如果内存峰值 < 105GB，可以安全移除 swap
-cd /root/solana-rpc-install
-sudo bash remove-swap.sh
+cat /proc/pressure/memory
+bash /root/performance-monitor.sh snapshot
 ```
 
-### 📊 判断标准
-
-| 内存峰值 | 建议操作 |
-|----------|---------|
-| **< 105GB** | ✅ 可以移除 swap，获得最佳性能 |
-| **105-110GB** | ⚠️ 建议保留 swap 作为缓冲 |
-| **> 110GB** | 🔴 必须保留 swap，避免 OOM |
-
-**注意**: 如果移除 swap 后出现内存问题，可以随时重新添加：
-```bash
-cd /root/solana-rpc-install
-sudo bash add-swap-128g.sh
-```
+监控脚本会在 Ubuntu 22.04 直接读取 `memory.peak`，在 Ubuntu 24.04 使用 systemd 属性。只有在峰值持续明显低于 `MemoryMax`、swap 未被使用且内存没有持续压力时，才应考虑移除 swap。
 
 ---
 
@@ -164,17 +149,41 @@ ShredStream 为 Jito MEV 基础设施提供低延迟的区块流传输。
 ## 📊 监控与管理
 
 ```bash
-# 实时日志
-journalctl -u sol -f
+# 持续查看 Agave validator 的真实运行日志
+bash /root/performance-monitor.sh logs
+
+# 持续查看 systemd 启动和重启日志
+bash /root/performance-monitor.sh journal
 
 # 性能监控
 bash /root/performance-monitor.sh snapshot
+
+# 完整诊断报告（打印并保存到 /var/log）
+bash /root/performance-monitor.sh diagnose
+
+# 持续打印指标并写入 /var/log/solana-performance.log
+bash /root/performance-monitor.sh monitor
 
 # 健康检查 (30分钟后可用)
 /root/get_health.sh
 
 # 同步进度
 /root/catchup.sh
+```
+
+日志位置和保留策略：
+
+- Validator 运行日志：`/root/solana-rpc.log`
+- 持续监控指标：`/var/log/solana-performance.log`
+- 完整诊断报告：`/var/log/solana-diagnostic-YYYYMMDD-HHMMSS.log`
+- Validator 和监控日志每天轮转、压缩，并保留 7 份。
+
+在不清理节点数据的情况下更新现有节点：
+
+```bash
+sudo bash update-runtime.sh
+# 在维护窗口重启，以启用 validator 和内存参数
+sudo bash update-runtime.sh --restart
 ```
 
 ## ✨ 核心特性
@@ -214,9 +223,10 @@ bash /root/performance-monitor.sh snapshot
   - TIER 3 (256GB): 高性能配置，适用于 256-383GB 系统
   - TIER 4 (512GB+): 最大容量配置，适用于企业级部署
 - 🔄 **自动磁盘管理**: 智能磁盘检测和挂载
-- 🛡️ **生产就绪**: Systemd 服务，动态内存限制和 OOM 保护
+- 🛡️ **生产就绪**: Systemd 服务，主机内存最后保护和 OOM 诊断
 - 🌐 **网络容错**: 增强版本验证，优雅处理网络问题
 - 📊 **监控工具**: 包含性能跟踪和健康检查
+- 📸 **只加载快照**: 使用下载的归档启动，不再持续生成完整快照
 
 ## 🔌 网络端口
 
@@ -230,7 +240,7 @@ bash /root/performance-monitor.sh snapshot
 ## 📈 性能指标
 
 - **快照下载**: 取决于网络 (通常 200MB - 1GB/s)
-- **内存使用**: 同步期间 60-110GB, 稳定运行 85-105GB (针对 128GB 系统优化)
+- **内存保护**: 不设置影响延迟的软限流，95% 为主机最后保护
 - **同步时间**: 1-3 小时 (从快照开始)
 - **CPU 使用**: 多核优化 (推荐 32+ 核心)
 - **稳定性**: 经过验证的配置，生产环境正常运行时间 >99.9%

@@ -288,6 +288,8 @@ apt install -y \
     wget \
     curl \
     bzip2 \
+    logrotate \
+    sysstat \
     ufw
 
 resolve_yellowstone_release "$SOLANA_VERSION"
@@ -458,7 +460,9 @@ cp -f "$SCRIPT_DIR/restart_node.sh"      /root/restart_node.sh
 cp -f "$SCRIPT_DIR/get_health.sh"        /root/get_health.sh
 cp -f "$SCRIPT_DIR/catchup.sh"           /root/catchup.sh
 cp -f "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
+cp -f "$SCRIPT_DIR/logrotate-solana-rpc" /etc/logrotate.d/solana-rpc
 chmod +x /root/*.sh
+chmod 0644 /etc/logrotate.d/solana-rpc
 echo "   ✓ $M_HELPERS_COPIED"
 
 echo ""

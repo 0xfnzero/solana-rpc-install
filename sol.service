@@ -7,7 +7,7 @@ StartLimitBurst=5
 
 [Service]
 Type=simple
-Restart=on-failure
+Restart=always
 RestartSec=30
 User=root
 LimitNOFILE=1000000
@@ -17,18 +17,14 @@ LimitSTACK=infinity
 LimitCORE=infinity
 LogRateLimitIntervalSec=0
 Environment="PATH=/usr/local/solana/bin:/usr/bin:/bin"
-Environment="RUST_LOG=warn"
+Environment="RUST_LOG=info"
 Environment="RUST_BACKTRACE=1"
-# Prevent OOM killer from targeting this process
-OOMScoreAdjust=-900
-# Memory limits (dynamically adjusted based on system RAM tier)
-# TIER 1 (128GB): MemoryHigh=100G, MemoryMax=115G
-# TIER 2 (192GB): MemoryHigh=150G, MemoryMax=175G
-# TIER 3 (256GB): MemoryHigh=200G, MemoryMax=230G
-# TIER 4 (512GB+): MemoryHigh=400G, MemoryMax=460G
-# Note: ExecStartPre will auto-select appropriate limits
-MemoryHigh=200G
-MemoryMax=230G
+# Keep the validator preferred without starving the rest of the system
+OOMScoreAdjust=-500
+# Latency-sensitive replay must not be throttled by memory.high. Keep only a
+# hard last-resort boundary so the operating system retains recovery headroom.
+MemoryHigh=infinity
+MemoryMax=95%
 # CPU affinity and scheduling
 Nice=-10
 IOSchedulingClass=realtime

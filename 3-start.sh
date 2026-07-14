@@ -77,7 +77,11 @@ sync_runtime_files() {
   cp -f "$SCRIPT_DIR/validator-512g.sh" "$BIN/validator-512g.sh"
   cp -f "$SCRIPT_DIR/select-validator.sh" "$BIN/select-validator.sh"
   cp -f "$SCRIPT_DIR/yellowstone-config.json" "$BIN/yellowstone-config.json"
+  cp -f "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
+  cp -f "$SCRIPT_DIR/logrotate-solana-rpc" /etc/logrotate.d/solana-rpc
   chmod +x "$BIN"/validator*.sh "$BIN/select-validator.sh"
+  chmod +x /root/performance-monitor.sh
+  chmod 0644 /etc/logrotate.d/solana-rpc
 
   cp -f "$SCRIPT_DIR/sol.service" "/etc/systemd/system/${SERVICE_NAME}.service"
   systemctl daemon-reload
@@ -130,7 +134,7 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_HEALTH="健康检查:"
   M_CATCHUP="追块状态:"
   M_METRICS="关键指标:"
-  M_MEM="内存峰值应 < 110GB"
+  M_MEM="内存峰值应低于 systemd MemoryMax 且无持续 pressure"
   M_CPU="CPU 使用率 < 70%"
   M_LAG="追块延迟 < 100 slots"
   M_FINISH="完成! RPC 节点正在同步区块链数据..."
@@ -174,7 +178,7 @@ else
   M_HEALTH="Health:"
   M_CATCHUP="Catchup:"
   M_METRICS="Key metrics:"
-  M_MEM="Memory peak < 110GB"
+  M_MEM="Memory peak below systemd MemoryMax without sustained pressure"
   M_CPU="CPU usage < 70%"
   M_LAG="Catchup lag < 100 slots"
   M_FINISH="Done! RPC node is syncing..."
@@ -233,7 +237,7 @@ dirs=("$LEDGER" "$ACCOUNTS" "$SNAPSHOT")
 for dir in "${dirs[@]}"; do
   if [[ -d "$dir" ]]; then
     printf "  - $M_CLEANING\n" "$dir"
-    rm -rf "$dir"/* "$dir"/.[!.]* "$dir"/..?* || true
+    rm -rf "${dir:?}"/* "${dir:?}"/.[!.]* "${dir:?}"/..?* || true
   else
     printf "  - $M_CREATING\n" "$dir"
     mkdir -p "$dir"

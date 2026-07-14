@@ -3,12 +3,12 @@
 # Solana RPC Validator - 512GB Memory Configuration
 # ==================================================================
 # Tier: MAXIMUM PERFORMANCE (Production Grade)
-# Target Peak: ~160-200GB
+# Memory: workload-dependent; monitor cgroup peak and pressure
 # RPC Threads: 20 | Cache: 8GB | Index Bins: 16384
 # Transaction History: ✅ ENABLED
 # ==================================================================
 
-export RUST_LOG=warn
+export RUST_LOG=${RUST_LOG:-info}
 export RUST_BACKTRACE=1
 export SOLANA_METRICS_CONFIG=""
 DYNAMIC_PORT_RANGE=${DYNAMIC_PORT_RANGE:-8000-8030}
@@ -17,7 +17,7 @@ GOSSIP_PORT=${GOSSIP_PORT:-8000}
 TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
 
 echo "⚡ TIER 4: 512GB MAXIMUM PERFORMANCE MODE"
-echo "   System RAM: ${TOTAL_MEM_GB}GB | Target Peak: ~160-200GB"
+echo "   System RAM: ${TOTAL_MEM_GB}GB | Memory: workload-dependent"
 echo "   RPC Threads: 20 | Accounts Cache: 8GB | Index Bins: 16384"
 echo "   ✅ Transaction History: ENABLED"
 echo "   ⚡ Production-grade performance and reliability"
@@ -64,9 +64,9 @@ exec $VALIDATOR_CMD \
  --rpc-bigtable-timeout 180 --rpc-send-retry-ms 1000 \
  --account-index program-id \
  --account-index-include-key AddressLookupTab1e1111111111111111111111111 \
- --no-incremental-snapshots \
- --maximum-full-snapshots-to-retain 3 \
- --maximum-incremental-snapshots-to-retain 3 \
+ --no-snapshots \
+ --maximum-full-snapshots-to-retain 1 \
+ --maximum-incremental-snapshots-to-retain 1 \
  --minimal-snapshot-download-speed 10485760 \
  --use-snapshot-archives-at-startup when-newest \
  --limit-ledger-size 50000000 \
