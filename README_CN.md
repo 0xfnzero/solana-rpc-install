@@ -11,7 +11,7 @@
     <a href="https://github.com/0xfnzero/solana-rpc-install/releases">
         <img src="https://img.shields.io/github/v/release/0xfnzero/solana-rpc-install?style=flat-square" alt="Release">
     </a>
-    <a href="https://github.com/0xfnzero/solana-rpc-install/blob/main/LICENSE">
+    <a href="https://opensource.org/license/mit">
         <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License">
     </a>
     <a href="https://github.com/0xfnzero/solana-rpc-install">
@@ -75,7 +75,10 @@
 
 ## 🚀 快速开始
 
-**三步安装**
+**阶段一：准备服务器并重启**
+
+> `1-prepare.sh` 可能格式化符合条件且尚未挂载的 NVMe 数据盘。执行前必须确认
+> 服务器上没有需要保留的数据。
 
 ```bash
 # 切换到 root 用户
@@ -91,6 +94,18 @@ bash 1-prepare.sh
 
 # (可选) 验证挂载配置
 bash verify-mounts.sh
+
+# 重启，使主机参数完整生效
+reboot
+```
+
+服务器启动后重新 SSH 登录，再继续执行：
+
+**阶段二：编译并启动节点**
+
+```bash
+sudo su -
+cd /root/solana-rpc-install
 
 # 步骤 2: 使用原生 CPU 指令和 LTO 从源码构建 Jito Solana
 bash 2-install-jito-validator.sh
@@ -190,17 +205,42 @@ bash /root/performance-monitor.sh monitor
 - Validator 和监控日志每天轮转、压缩，并保留 7 份。
 - 每次生成新诊断报告时，会清理 7 天前的旧诊断报告。
 
-在不清理节点数据的情况下更新现有节点：
+## 更新现有节点
+
+请在维护窗口执行升级。先把本地仓库更新到远程 `dev` 分支；显式拉取命令也兼容
+以前使用 `--single-branch` 克隆的节点：
 
 ```bash
-sudo bash update-runtime.sh
-# 在维护窗口重启，以启用 validator 和内存参数
+cd /root/solana-rpc-install
+git fetch origin dev:refs/remotes/origin/dev
+git switch dev 2>/dev/null || git switch --track -c dev origin/dev
+git pull --ff-only origin dev
+
+# 查看当前 validator 版本
+/usr/local/solana/bin/agave-validator --version
+```
+
+如果已经运行 `v4.1.2-jito`，只更新主机和运行配置：
+
+```bash
+sudo bash system-optimize.sh
 sudo bash update-runtime.sh --restart
 ```
 
-现有节点如需应用新的 sysctl、CPU、THP 和网卡 ring 配置，请在维护窗口先执行
-`sudo bash system-optimize.sh`，再更新运行配置。该命令会关闭 swap；128GB 用户如果
-明确需要可选 swapfile，应在系统优化后重新执行 `sudo bash add-swap-128g.sh`。
+如果仍是 `v4.1.0-jito`、`v4.1.1-jito` 或更早版本，先编译已验证版本。最后一次
+重启会短暂中断 RPC 服务：
+
+```bash
+# 版本提示处直接回车选择 v4.1.2。
+# nice 可减少编译过程对仍在运行的 validator 的影响。
+sudo nice -n 10 bash 2-install-jito-validator.sh
+sudo bash system-optimize.sh
+sudo bash update-runtime.sh --restart
+```
+
+`system-optimize.sh` 会关闭 swap。明确需要可选 swapfile 的 128GB 节点，应在系统
+优化后执行 `sudo bash add-swap-128g.sh`。以上升级流程都不会删除 ledger、accounts
+或 snapshot；普通更新不要运行 `3-start.sh --fresh-sync`。
 
 ## ✨ 核心特性
 
@@ -352,7 +392,7 @@ IP 白名单配置简单，但客户端公网 IP 变化后必须同步修改。T
 
 ## 📜 开源协议
 
-本项目采用 MIT 协议开源 - 详见 [LICENSE](LICENSE) 文件。
+本项目采用 [MIT License](https://opensource.org/license/mit) 发布。
 
 ---
 

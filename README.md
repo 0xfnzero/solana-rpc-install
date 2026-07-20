@@ -11,7 +11,7 @@
     <a href="https://github.com/0xfnzero/solana-rpc-install/releases">
         <img src="https://img.shields.io/github/v/release/0xfnzero/solana-rpc-install?style=flat-square" alt="Release">
     </a>
-    <a href="https://github.com/0xfnzero/solana-rpc-install/blob/main/LICENSE">
+    <a href="https://opensource.org/license/mit">
         <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License">
     </a>
     <a href="https://github.com/0xfnzero/solana-rpc-install">
@@ -51,9 +51,9 @@ It is built for operators who need a practical Solana mainnet RPC deployment gui
 |--------|---------|
 | `1-prepare.sh` | Mount NVMe data disks, create Solana directories, and apply Linux system optimizations |
 | `2-install-jito-validator.sh` | Build and install Jito Solana / Agave validator from source |
-| `3-start.sh` | Download snapshots, install the systemd service, and start the RPC node |
+| `3-start.sh` | Reuse or download a snapshot, install systemd, and start the RPC node without deleting data by default |
 | `validator.sh` | Auto-select the right validator profile for 128GB, 192GB, 256GB, or 512GB+ RAM |
-| `yellowstone-config.json` | Production-tested Yellowstone gRPC Geyser configuration |
+| `yellowstone-config.json` | Base Yellowstone gRPC Geyser configuration |
 | `performance-monitor.sh`, `get_health.sh`, `catchup.sh` | Monitor node health, memory, performance, and sync progress |
 | `update-runtime.sh` | Apply runtime and monitoring fixes without deleting node data |
 | `logrotate-solana-rpc` | Rotate and compress validator and monitoring logs |
@@ -78,7 +78,10 @@ It is built for operators who need a practical Solana mainnet RPC deployment gui
 
 ## 🚀 Quick Start
 
-**Three-Step Installation**
+**Phase 1: Prepare the server**
+
+> `1-prepare.sh` can format eligible unmounted NVMe data disks. Verify that the
+> server does not contain data you need before running it.
 
 ```bash
 # Switch to root user
@@ -94,6 +97,18 @@ bash 1-prepare.sh
 
 # (Optional) Verify mount configuration
 bash verify-mounts.sh
+
+# Reboot to activate the host configuration
+reboot
+```
+
+Reconnect over SSH after the server is back, then continue:
+
+**Phase 2: Build and start the node**
+
+```bash
+sudo su -
+cd /root/solana-rpc-install
 
 # Step 2: Build Jito Solana from source with native CPU + LTO optimizations
 bash 2-install-jito-validator.sh
@@ -201,18 +216,43 @@ Log locations and retention:
 - Validator and metrics logs rotate daily, are compressed, and retain 7 archives.
 - Diagnostic reports older than 7 days are removed when a new report is created.
 
-Apply configuration updates to an existing node without clearing its data:
+## Updating An Existing Node
+
+Run the update during a maintenance window. First update the local checkout to
+the remote `dev` branch; the explicit fetch also works for single-branch clones:
 
 ```bash
-sudo bash update-runtime.sh
-# Restart during a maintenance window to activate validator and memory changes
+cd /root/solana-rpc-install
+git fetch origin dev:refs/remotes/origin/dev
+git switch dev 2>/dev/null || git switch --track -c dev origin/dev
+git pull --ff-only origin dev
+
+# Check the installed validator version
+/usr/local/solana/bin/agave-validator --version
+```
+
+If the node already runs `v4.1.2-jito`, update only the host and runtime configuration:
+
+```bash
+sudo bash system-optimize.sh
 sudo bash update-runtime.sh --restart
 ```
 
-To apply the revised host sysctl, CPU, THP, and NIC-ring settings on an existing
-node, run `sudo bash system-optimize.sh` during a maintenance window before the
-runtime update. This command disables swap; 128GB operators who intentionally
-use the optional swapfile should run `sudo bash add-swap-128g.sh` afterwards.
+If the node runs `v4.1.0-jito`, `v4.1.1-jito`, or an older release, build the
+tested release first. The final restart briefly interrupts RPC service:
+
+```bash
+# Press Enter at the version prompt to select v4.1.2.
+# nice reduces build contention with a validator that is still running.
+sudo nice -n 10 bash 2-install-jito-validator.sh
+sudo bash system-optimize.sh
+sudo bash update-runtime.sh --restart
+```
+
+`system-optimize.sh` disables swap. A 128GB operator who intentionally needs the
+optional swapfile should run `sudo bash add-swap-128g.sh` after system optimization.
+Neither upgrade path deletes ledger, accounts, or snapshots; do not run
+`3-start.sh --fresh-sync` for a normal update.
 
 ## ✨ Key Features
 
@@ -370,7 +410,7 @@ enabled automatically.
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is distributed under the [MIT License](https://opensource.org/license/mit).
 
 ---
 
