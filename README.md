@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-    <strong>Deploy battle-tested Solana RPC nodes with stable, proven configurations and source compilation from GitHub.</strong>
+    <strong>Deploy observable Solana RPC nodes with conservative configurations and source compilation from GitHub.</strong>
 </p>
 
 <p align="center">
@@ -86,7 +86,7 @@ sudo su -
 
 # Clone repository to /root
 cd /root
-git clone https://github.com/0xfnzero/solana-rpc-install.git
+git clone --branch dev --single-branch https://github.com/0xfnzero/solana-rpc-install.git
 cd solana-rpc-install
 
 # Step 1: Mount disks + System optimization
@@ -95,13 +95,22 @@ bash 1-prepare.sh
 # (Optional) Verify mount configuration
 bash verify-mounts.sh
 
-# Step 2: Build Jito Solana from source (15-30 minutes)
+# Step 2: Build Jito Solana from source with native CPU + LTO optimizations
 bash 2-install-jito-validator.sh
-# Press Enter to install v4.1.1, or enter a specific version (e.g., v4.1.0-rc.1)
+# Press Enter to install the tested stable v4.1.2, or enter another existing Jito tag
 # Supports stable, rc, and beta Jito tags
 
 # Step 3: Download snapshot and start node
 bash 3-start.sh
+```
+
+Re-running `3-start.sh` preserves ledger, accounts, and snapshots. A complete
+snapshot is reused instead of downloaded again. To intentionally discard node
+data and perform a fresh synchronization, use the explicit destructive mode:
+
+```bash
+bash 3-start.sh --fresh-sync
+# The script requires typing FRESH-SYNC before it deletes any node data.
 ```
 
 > **ℹ️ Installation Method**
@@ -113,7 +122,8 @@ Agave memory usage depends on the release, account index, RPC traffic, and
 Geyser subscriptions. Do not use a fixed GB threshold from an older release.
 For the common 128GB and 192GB deployments, the service does not configure a
 `MemoryHigh` throttle: replay latency must not be degraded by aggressive cgroup
-reclaim. `MemoryMax=95%` is retained only as a last-resort host safeguard.
+reclaim. `MemoryMax=90%` is retained only as a last-resort host safeguard,
+leaving at least 10% of RAM for the kernel, filesystem cache, SSH, and monitoring.
 
 ### 🔧 Swap Management (Optional for 128GB Systems)
 
@@ -167,6 +177,9 @@ bash /root/performance-monitor.sh journal
 # Performance monitoring
 bash /root/performance-monitor.sh snapshot
 
+# The snapshot includes the busiest Agave threads and CPU/memory/I/O pressure
+# Look for sustained solAcctsDbBg*, rocksdb:*, or solPohTickProd usage
+
 # Complete diagnostic report (prints and saves under /var/log)
 bash /root/performance-monitor.sh diagnose
 
@@ -186,6 +199,7 @@ Log locations and retention:
 - Continuous metrics: `/var/log/solana-performance.log`
 - Diagnostic reports: `/var/log/solana-diagnostic-YYYYMMDD-HHMMSS.log`
 - Validator and metrics logs rotate daily, are compressed, and retain 7 archives.
+- Diagnostic reports older than 7 days are removed when a new report is created.
 
 Apply configuration updates to an existing node without clearing its data:
 
@@ -195,44 +209,59 @@ sudo bash update-runtime.sh
 sudo bash update-runtime.sh --restart
 ```
 
+To apply the revised host sysctl, CPU, THP, and NIC-ring settings on an existing
+node, run `sudo bash system-optimize.sh` during a maintenance window before the
+runtime update. This command disables swap; 128GB operators who intentionally
+use the optional swapfile should run `sudo bash add-swap-128g.sh` afterwards.
+
 ## ✨ Key Features
 
-### 🔧 Battle-Tested Configuration Philosophy
+### 🔧 Configuration Philosophy
 
-All configurations are based on **proven production deployments** with thousands of hours of uptime:
+The defaults prioritize 128GB/192GB stability, upstream compatibility, and diagnostics:
 
 - **Conservative Stability > Aggressive Optimization**
 - **Simple Defaults > Complex Customization**
-- **Proven Performance > Theoretical Gains**
+- **Measured Performance > Theoretical Gains**
 
 ### 📦 System Optimizations (No Reboot Required)
 
-- 🌐 **TCP Congestion Control**: Westwood (classic, stable algorithm)
-- 🔧 **TCP Buffers**: 12MB (conservative, low-latency optimized)
-- 💾 **File Descriptors**: 1M limit (sufficient for production)
-- 🛡️ **Memory Management**: swappiness=30 (balanced approach)
-- 🔄 **VM Settings**: Conservative dirty ratios for stability
+- 🌐 **Socket Buffer Maximum**: 128MB, matching the Anza validator baseline
+- 💾 **File Descriptors**: 1M limit and 2GB memlock limit
+- 🔄 **Bounded Writeback**: 512MB background and 2GB hard dirty-memory limits
+- ⚡ **CPU Policy**: Persistent performance governor, EPP performance, and turbo
+- 🧠 **Memory Latency**: Transparent Huge Pages disabled at runtime
+- 🌐 **NIC Rings**: Raised to each detected interface's advertised maximum
+- 🛡️ **Conservative Scope**: No SMT, C-state, IRQ affinity, kernel, or GRUB changes
 
 ### ⚡ Yellowstone gRPC Configuration
 
-- ✅ **Compression Enabled**: gzip + zstd (reduces memory copy overhead)
-- 📦 **Conservative Buffers**: 50M snapshot, 200K channel (fast processing)
-- 🎯 **Proven Defaults**: System-managed Tokio, default HTTP/2 settings
-- 🛡️ **Resource Protection**: Strict filter limits prevent abuse
+- ✅ **Compression Available**: Clients can negotiate gzip or zstd when bandwidth savings justify CPU cost
+- 📦 **Profile Buffers**: 50K channel/128 unary on 128GB; 100K/256 on 192GB
+- 🎯 **Upstream Defaults**: System-managed Tokio and default HTTP/2 settings
+- 🛡️ **Resource Protection**: Bounded filter/request counts; authentication remains optional
+
+The launcher generates the profile-specific queue limits under `/run/solana-rpc`
+without modifying `yellowstone-config.json`. Advanced operators can set
+`GEYSER_CONFIG=/path/to/custom.json` to bypass generation. The optional
+`ENABLE_GEYSER=0`, `ENABLE_ALT_INDEX=0`, and `ENABLE_TX_HISTORY=0` environment
+variables disable individual workloads while keeping the default installation
+fully compatible.
 
 ### 🚀 Deployment Features
 
 - 📦 **Source Compilation Installation**:
-  - 🔧 Jito Solana from official GitHub (15-30 min)
+  - 🔧 Jito Solana from official GitHub (typically 30-90 min with LTO)
+  - ⚡ Native CPU instructions and Jito's release-with-LTO build profile
   - ✅ Complete validator binary with full MEV support
-  - 🎯 100% compliant with Jito Foundation standards
+  - 🎯 Built from a verified Jito release tag and recorded source commit
 - 🧠 **Intelligent Configuration Selection**: Auto-detects system RAM and selects optimal validator configuration
   - TIER 1 (128GB): Conservative settings for 128-159GB systems
   - TIER 2 (192GB): Balanced configuration for 192-223GB systems
   - TIER 3 (256GB): High-performance for 256-383GB systems
   - TIER 4 (512GB+): Maximum capacity for enterprise deployments
 - 🔄 **Automatic Disk Management**: Smart disk detection and mounting
-- 🛡️ **Production Ready**: Systemd service with a last-resort host memory safeguard and OOM diagnostics
+- 🛡️ **Production Ready**: Systemd service with a 90% last-resort host memory safeguard and OOM diagnostics
 - 🌐 **Network Resilience**: Enhanced version verification with graceful degradation
 - 📊 **Monitoring Tools**: Performance tracking and health checks included
 - 📸 **Load-only Snapshots**: Bootstrap from downloaded archives without continuously generating full snapshots
@@ -243,16 +272,32 @@ All configurations are based on **proven production deployments** with thousands
 |------|----------|---------|
 | **8899** | HTTP | RPC endpoint |
 | **8900** | WebSocket | Real-time subscriptions |
-| **10900** | gRPC | High-performance data streaming |
+| **10900** | gRPC | High-performance data streaming; open by default for compatibility |
 | **8000-8030** | TCP/UDP | Validator communication (dynamic) |
+
+The installer does not require a gRPC token, so existing clients continue to
+work without additional metadata. Operators with a fixed client IP can
+optionally restrict port 10900:
+
+```bash
+ufw delete allow 10900
+ufw allow from CLIENT_PUBLIC_IP to any port 10900 proto tcp
+ufw deny 10900/tcp
+ufw status numbered
+```
+
+An IP allowlist is simple for fixed servers but must be updated whenever the
+client's public IP changes. Token authentication is more flexible for roaming
+clients, but every client must be configured to send the token, so it is not
+enabled automatically.
 
 ## 📈 Performance Metrics
 
 - **Snapshot Download**: Network-dependent (typically 200MB - 1GB/s)
-- **Memory Protection**: No latency-inducing soft throttle; 95% hard host safeguard
+- **Memory Protection**: No latency-inducing soft throttle; 90% hard host safeguard
 - **Sync Time**: 1-3 hours (from snapshot)
 - **CPU Usage**: Multi-core optimized (32+ cores recommended)
-- **Stability**: Proven configuration with >99.9% uptime in production
+- **Stability**: Conservative defaults with cgroup, pressure, disk, and thread diagnostics
 
 ## 🛠️ Architecture
 
@@ -263,22 +308,22 @@ All configurations are based on **proven production deployments** with thousands
 │  Jito Solana Validator (v4.1.x)                         │
 │  ├─ Installation: Source compilation from GitHub        │
 │  │  • agave-validator with full MEV support             │
-│  │  • 100% Jito Foundation compliant (15-30 min)        │
+│  │  • Native CPU + release-with-LTO build               │
 │  ├─ Yellowstone gRPC auto-matched to Solana version     │
 │  ├─ RPC HTTP/WebSocket (Port 8899/8900)                 │
 │  └─ Accounts & Ledger (Optimized RocksDB)               │
 ├─────────────────────────────────────────────────────────┤
-│  System Optimizations (Battle-Tested)                   │
-│  ├─ TCP: 12MB buffers, Westwood congestion control      │
-│  ├─ Memory: swappiness=30, balanced VM settings         │
+│  System Optimizations (Conservative)                    │
+│  ├─ Network: Anza 128MB socket maximum                  │
+│  ├─ Memory: bounded dirty writeback, THP disabled       │
 │  ├─ File Descriptors: 1M limit, sufficient for prod     │
-│  └─ Stability: Conservative defaults, proven in prod    │
+│  └─ Stability: Conservative defaults + diagnostics      │
 ├─────────────────────────────────────────────────────────┤
 │  Yellowstone gRPC (Open-Source Tested Config)           │
 │  ├─ Compression: gzip+zstd enabled (fast processing)    │
-│  ├─ Buffers: 50M snapshot, 200K channel (low latency)   │
+│  ├─ Buffers: 50K/128 (128GB), 100K/256 (192GB)         │
 │  ├─ Defaults: System-managed, no over-optimization      │
-│  └─ Protection: Strict filters, resource limits         │
+│  └─ Protection: Filter and request limits               │
 ├─────────────────────────────────────────────────────────┤
 │  Infrastructure                                          │
 │  ├─ Systemd Service (Auto-restart, graceful shutdown)   │
@@ -291,40 +336,30 @@ All configurations are based on **proven production deployments** with thousands
 
 ### Why Conservative Configuration?
 
-Based on extensive production testing, we discovered:
+1. **Compression is a tradeoff**
+   - gzip and zstd can reduce network bandwidth.
+   - Compression consumes CPU, so clients should benchmark it for their traffic.
 
-1. **Compression Enabled = Lower Latency**
-   - Even on localhost, compressed data transfers faster in memory
-   - CPU overhead is minimal, latency reduction is significant
+2. **Queues are bounded per profile**
+   - 128GB nodes use a 50K per-connection channel; 192GB nodes use 100K.
+   - A slow consumer may lag or reconnect instead of consuming unbounded node memory.
 
-2. **Smaller Buffers = Faster Processing**
-   - 50M snapshot vs 250M: Less queue delay, faster throughput
-   - 200K channel vs 1.5M: Reduced "buffer bloat" latency
+3. **Leave unrelated runtime controls at upstream defaults**
+   - Tokio and HTTP/2 thread/window settings are not overridden.
+   - SMT, C-states, IRQ affinity, kernel versions, and GRUB are not changed.
 
-3. **System Defaults = Better Stability**
-   - No custom Tokio threads: Let system auto-manage
-   - No custom HTTP/2 settings: Defaults are already optimized
-   - Fewer custom parameters = Fewer potential issues
-
-4. **Proven in Production**
-   - Thousands of hours of uptime
-   - Tested across different hardware configurations
-   - Battle-tested under real-world load
-
-### 📚 Backup Configuration
-
-If you need the aggressive optimization config for specific use cases:
-- Extreme config backed up as `yellowstone-config-extreme-backup.json`
-- Accessible in repository history (commit 6cc31d9)
+4. **Measure before changing limits**
+   - Use `performance-monitor.sh snapshot` for thread and pressure data.
+   - Use `performance-monitor.sh diagnose` before reporting a restart or sync issue.
 
 ## 📚 Documentation
 
 - **Installation Guide**: You're reading it!
-- **Mount Strategy**: See [MOUNT_STRATEGY.md](MOUNT_STRATEGY.md)
+- **Mount Validation**: Run `sudo bash verify-mounts.sh`
 - **Troubleshooting**: Check logs with `journalctl -u sol -f`
 - **Configuration**: All optimizations included by default
 - **Monitoring**: Use provided helper scripts
-- **Optimization Details**: See `YELLOWSTONE_OPTIMIZATION.md`
+- **Optimization Details**: See the System Optimizations and Yellowstone sections above
 
 ## 🤝 Support & Community
 

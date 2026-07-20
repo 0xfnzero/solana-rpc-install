@@ -224,7 +224,7 @@ if [[ "$ACCOUNTS_MOUNT" == "$ACCOUNTS" ]]; then
 else
     echo -e "  ⚠️  ${YELLOW}Accounts 未独立挂载${NC}"
     echo -e "     建议：将 accounts 挂载到独立的 NVMe 磁盘以获得最佳性能"
-    echo -e "     参考：MOUNT_STRATEGY.md"
+    echo -e "     参考：README_CN.md 的系统要求章节"
 fi
 echo ""
 
@@ -261,9 +261,9 @@ echo -e "  • 使用 --limit-ledger-size 限制 ledger 增长"
 echo ""
 
 echo -e "${BLUE}📚 参考文档：${NC}"
-echo -e "  • 挂载策略: MOUNT_STRATEGY.md"
+echo -e "  • 安装与挂载说明: README_CN.md"
 echo -e "  • 性能监控: bash performance-monitor.sh"
-echo -e "  • 配置优化: OPTIMIZATION_GUIDE.md"
+echo -e "  • 配置优化: README_CN.md 的系统优化章节"
 echo ""
 
 echo -e "${GREEN}验证完成！${NC}"

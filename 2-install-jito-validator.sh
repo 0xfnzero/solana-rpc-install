@@ -17,18 +17,13 @@ LANG_CACHE_FILE="$SCRIPT_DIR/solana-rpc-lang"
 source "$SCRIPT_DIR/lang.sh"
 
 BASE=${BASE:-/root/sol}
-LEDGER="$BASE/ledger"
-ACCOUNTS="$BASE/accounts"
-SNAPSHOT="$BASE/snapshot"
 BIN="$BASE/bin"
-TOOLS="$BASE/tools"
 KEYPAIR="$BIN/validator-keypair.json"
-LOGFILE=/root/solana-rpc.log
 GEYSER_CFG="$BIN/yellowstone-config.json"
 SERVICE_NAME=${SERVICE_NAME:-sol}
 SOLANA_INSTALL_DIR="/usr/local/solana"
 BUILD_DIR="/tmp/jito-solana-build"
-DEFAULT_SOLANA_VERSION="v4.1.1"
+DEFAULT_SOLANA_VERSION="v4.1.2"
 VALIDATOR_DYNAMIC_PORT_RANGE="8000-8030"
 VALIDATOR_UFW_PORT_RANGE="${VALIDATOR_DYNAMIC_PORT_RANGE/-/:}"
 
@@ -121,9 +116,9 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_HEADER="Jito Solana Validator - 从源码编译安装"
   M_STEP0="选择 Jito Solana 版本..."
   M_SEE_TAGS="查看所有版本: https://github.com/jito-foundation/jito-solana/tags"
-  M_ENTER_HINT="(页面显示 v4.1.1-jito 格式，您只需输入 v4.1.1；预发布版可输入 v4.1.0-rc.1)"
-  M_VER_PROMPT="请输入 Jito Solana 版本号 [默认 v4.1.1]: "
-  M_VER_ERR="[错误] 版本号格式不正确，应为 vX.Y.Z 或 vX.Y.Z-rc.N 格式 (例如 v4.1.1)"
+  M_ENTER_HINT="(页面显示 v4.1.2-jito 格式，您只需输入 v4.1.2；预发布版可输入 v4.2.0-beta.1)"
+  M_VER_PROMPT="请输入 Jito Solana 版本号 [默认 v4.1.2]: "
+  M_VER_ERR="[错误] 版本号格式不正确，应为 vX.Y.Z 或 vX.Y.Z-rc.N 格式 (例如 v4.1.2)"
   M_VER_SUFFIX="只输入版本号，不要包含 -jito 后缀"
   M_WILL_INSTALL="将安装版本:"
   M_STEP1="安装编译依赖（与 Jito 官方文档一致）..."
@@ -132,13 +127,13 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_RUST_INSTALL="安装 Rust..."
   M_RUST_DONE="Rust 安装完成"
   M_RUST_FMT="更新 Rust 到 stable 并安装 rustfmt..."
-  M_STEP3="克隆 Jito Solana 源码（完整 clone 后 checkout tag）..."
+  M_STEP3="按版本标签浅克隆 Jito Solana 源码..."
   M_CLEAN_BUILD="清理旧的构建目录..."
   M_CLONE="克隆仓库（含子模块）..."
-  M_CHECKOUT="切换到标签 %s 并更新子模块..."
+  M_CHECKOUT="验证标签 %s 并更新子模块..."
   M_SOURCE_READY="源码就绪 (commit: %s)"
   M_STEP4="编译 Jito Solana Validator..."
-  M_BUILD_TIME="这将需要 15-30 分钟，取决于 CPU 性能"
+  M_BUILD_TIME="启用 LTO 后通常需要 30-90 分钟，取决于 CPU 性能"
   M_BUILDING="开始编译 validator..."
   M_BUILD_FAIL="编译失败: validator 未生成到 %s/bin (应有 agave-validator 或 solana-validator)"
   M_BUILD_DONE="编译完成"
@@ -177,9 +172,9 @@ else
   M_HEADER="Jito Solana Validator - Build and install from source"
   M_STEP0="Select Jito Solana version..."
   M_SEE_TAGS="See all tags: https://github.com/jito-foundation/jito-solana/tags"
-  M_ENTER_HINT="(page shows v4.1.1-jito; enter only v4.1.1; prereleases like v4.1.0-rc.1 are allowed)"
-  M_VER_PROMPT="Enter Jito Solana version [default v4.1.1]: "
-  M_VER_ERR="[ERROR] Invalid version format. Use vX.Y.Z or vX.Y.Z-rc.N (e.g. v4.1.1)"
+  M_ENTER_HINT="(page shows v4.1.2-jito; enter only v4.1.2; prereleases like v4.2.0-beta.1 are allowed)"
+  M_VER_PROMPT="Enter Jito Solana version [default v4.1.2]: "
+  M_VER_ERR="[ERROR] Invalid version format. Use vX.Y.Z or vX.Y.Z-rc.N (e.g. v4.1.2)"
   M_VER_SUFFIX="Enter version only, without -jito suffix"
   M_WILL_INSTALL="Will install:"
   M_STEP1="Install build dependencies (per Jito docs)..."
@@ -188,13 +183,13 @@ else
   M_RUST_INSTALL="Installing Rust..."
   M_RUST_DONE="Rust installed"
   M_RUST_FMT="Update Rust to stable and add rustfmt..."
-  M_STEP3="Clone Jito Solana source (full clone then checkout tag)..."
+  M_STEP3="Shallow-clone Jito Solana at the selected release tag..."
   M_CLEAN_BUILD="Cleaning old build dir..."
   M_CLONE="Cloning repo (with submodules)..."
-  M_CHECKOUT="Checkout tag %s and update submodules..."
+  M_CHECKOUT="Verify tag %s and update submodules..."
   M_SOURCE_READY="Source ready (commit: %s)"
   M_STEP4="Build Jito Solana Validator..."
-  M_BUILD_TIME="This may take 15-30 minutes depending on CPU"
+  M_BUILD_TIME="The LTO build usually takes 30-90 minutes depending on CPU"
   M_BUILDING="Building validator..."
   M_BUILD_FAIL="Build failed: no validator binary at %s/bin (expected agave-validator or solana-validator)"
   M_BUILD_DONE="Build complete"
@@ -263,6 +258,12 @@ while true; do
 
   # Construct tag name
   JITO_TAG="${SOLANA_VERSION}-jito"
+  if command -v git >/dev/null 2>&1 && \
+      ! git ls-remote --exit-code --tags https://github.com/jito-foundation/jito-solana.git \
+        "refs/tags/${JITO_TAG}" >/dev/null 2>&1; then
+    echo "[ERROR] Jito release tag does not exist: $JITO_TAG" >&2
+    continue
+  fi
   echo "$M_WILL_INSTALL ${JITO_TAG}"
   break
 done
@@ -284,6 +285,7 @@ apt install -y \
     libprotobuf-dev \
     protobuf-compiler \
     python3 \
+    jq \
     git \
     wget \
     curl \
@@ -291,6 +293,12 @@ apt install -y \
     logrotate \
     sysstat \
     ufw
+
+if ! git ls-remote --exit-code --tags https://github.com/jito-foundation/jito-solana.git \
+    "refs/tags/${JITO_TAG}" >/dev/null 2>&1; then
+  echo "[ERROR] Jito release tag does not exist or GitHub is unreachable: $JITO_TAG" >&2
+  exit 1
+fi
 
 resolve_yellowstone_release "$SOLANA_VERSION"
 printf "Yellowstone gRPC: %s\n" "$YELLOWSTONE_RELEASE_TAG"
@@ -331,11 +339,11 @@ mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
 echo "   - $M_CLONE"
-git clone https://github.com/jito-foundation/jito-solana.git --recurse-submodules
+git clone --branch "$JITO_TAG" --depth 1 --recurse-submodules --shallow-submodules \
+  https://github.com/jito-foundation/jito-solana.git
 cd jito-solana
 
 printf "   - $M_CHECKOUT\n" "$JITO_TAG"
-git checkout "tags/${JITO_TAG}"
 git submodule update --init --recursive
 
 printf "   ✓ $M_SOURCE_READY\n" "$(git rev-parse HEAD)"
@@ -349,8 +357,9 @@ echo ""
 echo "   - $M_BUILDING"
 CI_COMMIT=$(git rev-parse HEAD)
 export CI_COMMIT
+export RUSTFLAGS="${RUSTFLAGS:--C target-cpu=native}"
 mkdir -p "$SOLANA_INSTALL_DIR"
-scripts/cargo-install-all.sh --validator-only "$SOLANA_INSTALL_DIR"
+scripts/cargo-install-all.sh --release-with-lto --validator-only "$SOLANA_INSTALL_DIR"
 
 # Per jito-solana scripts/agave-build-lists.sh, AGAVE_BINS_VAL_OP includes agave-validator.
 # Check that first; fallback to solana-validator for older or alternate builds.
@@ -369,7 +378,13 @@ echo ""
 echo "==> 5) $M_STEP5"
 printf "   ✓ $M_FOUND_VAL\n" "$VALIDATOR_CMD"
 echo "   - $M_BINARIES"
-ls -lh "$SOLANA_INSTALL_DIR/bin/" | grep -E "validator|solana" | head -10
+binary_count=0
+for binary in "$SOLANA_INSTALL_DIR"/bin/*validator* "$SOLANA_INSTALL_DIR"/bin/solana*; do
+  [[ -e "$binary" ]] || continue
+  ls -lh "$binary"
+  binary_count=$((binary_count + 1))
+  ((binary_count >= 10)) && break
+done
 
 echo ""
 echo "==> 6) $M_STEP6"
@@ -437,7 +452,10 @@ fi
 
 echo ""
 echo "==> 11) $M_STEP11"
-cp -f "$SCRIPT_DIR/sol.service" /etc/systemd/system/${SERVICE_NAME}.service
+if command -v systemd-analyze >/dev/null 2>&1; then
+  systemd-analyze verify "$SCRIPT_DIR/sol.service"
+fi
+cp -f "$SCRIPT_DIR/sol.service" "/etc/systemd/system/${SERVICE_NAME}.service"
 systemctl daemon-reload
 echo "   ✓ $M_SVC_UPDATED"
 
@@ -460,7 +478,8 @@ cp -f "$SCRIPT_DIR/restart_node.sh"      /root/restart_node.sh
 cp -f "$SCRIPT_DIR/get_health.sh"        /root/get_health.sh
 cp -f "$SCRIPT_DIR/catchup.sh"           /root/catchup.sh
 cp -f "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
-cp -f "$SCRIPT_DIR/logrotate-solana-rpc" /etc/logrotate.d/solana-rpc
+sed "s/sol\.service/${SERVICE_NAME}.service/g" "$SCRIPT_DIR/logrotate-solana-rpc" \
+  >/etc/logrotate.d/solana-rpc
 chmod +x /root/*.sh
 chmod 0644 /etc/logrotate.d/solana-rpc
 echo "   ✓ $M_HELPERS_COPIED"

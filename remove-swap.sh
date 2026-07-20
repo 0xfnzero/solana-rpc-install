@@ -92,11 +92,15 @@ fi
 
 echo ""
 echo "==> Removing swappiness configuration..."
-if grep -q 'vm.swappiness' /etc/sysctl.conf; then
-  sed -i.backup '/vm.swappiness/d' /etc/sysctl.conf
-  echo "   ✓ Removed vm.swappiness from /etc/sysctl.conf"
+if [[ -f /etc/sysctl.d/99-solana-swap.conf ]]; then
+  rm -f /etc/sysctl.d/99-solana-swap.conf
+  echo "   ✓ Removed /etc/sysctl.d/99-solana-swap.conf"
 else
-  echo "   ⚠️  No swappiness setting found in /etc/sysctl.conf"
+  echo "   ⚠️  No managed swappiness setting found"
+fi
+if [[ -f /etc/sysctl.conf ]] && grep -q '^vm\.swappiness=10$' /etc/sysctl.conf; then
+  sed -i.backup '/^vm\.swappiness=10$/d' /etc/sysctl.conf
+  echo "   ✓ Removed legacy vm.swappiness=10 from /etc/sysctl.conf"
 fi
 
 echo ""

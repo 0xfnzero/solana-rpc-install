@@ -1,52 +1,204 @@
 #!/bin/bash
+set -euo pipefail
 
-# ==================================================================
-# Solana RPC Validator - Auto-Selector
-# ==================================================================
-# Automatically detects system memory and launches appropriate config
-# Available configurations:
-#   - validator-128g.sh: 128GB RAM (Extreme optimization, no TX history)
-#   - validator-192g.sh: 192GB RAM (Standard, full RPC features)
-#   - validator-256g.sh: 256GB RAM (High performance)
-#   - validator-512g.sh: 512GB+ RAM (Maximum performance)
-# ==================================================================
+# Shared Solana RPC launcher. The profile only changes bounded concurrency and
+# accounts-index sharding; all safety-sensitive flags live in one place.
 
-# Detect system memory in GB
 TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROFILE=${1:-auto}
 
-echo "=================================================================="
-echo "Solana RPC Validator - Auto-Selector"
-echo "System Memory: ${TOTAL_MEM_GB}GB detected"
-echo "=================================================================="
-
-# Select appropriate configuration based on memory
-if [[ $TOTAL_MEM_GB -lt 160 ]]; then
-  CONFIG_FILE="$SCRIPT_DIR/validator-128g.sh"
-  echo "Selected: TIER 1 (128GB) - Optimized Standard"
-  echo "✅ Full RPC features with conservative parameters"
-elif [[ $TOTAL_MEM_GB -lt 224 ]]; then
-  CONFIG_FILE="$SCRIPT_DIR/validator-192g.sh"
-  echo "Selected: TIER 2 (192GB) - Standard Configuration"
-  echo "✅ Full RPC features with recommended parameters"
-elif [[ $TOTAL_MEM_GB -lt 384 ]]; then
-  CONFIG_FILE="$SCRIPT_DIR/validator-256g.sh"
-  echo "Selected: TIER 3 (256GB) - High Performance"
-  echo "✅ Enhanced RPC performance and capacity"
-else
-  CONFIG_FILE="$SCRIPT_DIR/validator-512g.sh"
-  echo "Selected: TIER 4 (512GB+) - Maximum Performance"
-  echo "✅ Maximum RPC capacity and throughput"
+if [[ "$PROFILE" == "auto" ]]; then
+  if ((TOTAL_MEM_GB < 160)); then
+    PROFILE=128g
+  elif ((TOTAL_MEM_GB < 224)); then
+    PROFILE=192g
+  elif ((TOTAL_MEM_GB < 384)); then
+    PROFILE=256g
+  else
+    PROFILE=512g
+  fi
 fi
 
-# Check if config file exists
-if [[ ! -f "$CONFIG_FILE" ]]; then
-  echo "❌ ERROR: Configuration file not found: $CONFIG_FILE"
+case "$PROFILE" in
+  128g)
+    RPC_THREADS=8
+    ACCOUNTS_INDEX_BINS=2048
+    PROFILE_LABEL="128GB stability"
+    ;;
+  192g)
+    RPC_THREADS=10
+    ACCOUNTS_INDEX_BINS=4096
+    PROFILE_LABEL="192GB balanced"
+    ;;
+  256g)
+    RPC_THREADS=16
+    ACCOUNTS_INDEX_BINS=8192
+    PROFILE_LABEL="256GB performance"
+    ;;
+  512g)
+    RPC_THREADS=20
+    ACCOUNTS_INDEX_BINS=16384
+    PROFILE_LABEL="512GB performance"
+    ;;
+  *)
+    echo "[ERROR] Unknown profile: $PROFILE (expected 128g, 192g, 256g, or 512g)" >&2
+    exit 2
+    ;;
+esac
+
+export RUST_LOG=${RUST_LOG:-info}
+export RUST_BACKTRACE=1
+export SOLANA_METRICS_CONFIG=""
+
+DYNAMIC_PORT_RANGE=${DYNAMIC_PORT_RANGE:-8000-8030}
+GOSSIP_PORT=${GOSSIP_PORT:-8000}
+ACCOUNTS_CACHE_MB=${ACCOUNTS_CACHE_MB:-8192}
+ENABLE_GEYSER=${ENABLE_GEYSER:-1}
+ENABLE_ALT_INDEX=${ENABLE_ALT_INDEX:-1}
+ENABLE_TX_HISTORY=${ENABLE_TX_HISTORY:-1}
+GEYSER_CONFIG_PATH=""
+
+if [[ ! "$ACCOUNTS_CACHE_MB" =~ ^[0-9]+$ ]] || ((ACCOUNTS_CACHE_MB < 1024)); then
+  echo "[ERROR] ACCOUNTS_CACHE_MB must be an integer of at least 1024" >&2
+  exit 2
+fi
+for toggle in ENABLE_GEYSER ENABLE_ALT_INDEX ENABLE_TX_HISTORY; do
+  if [[ ! "${!toggle}" =~ ^[01]$ ]]; then
+    echo "[ERROR] $toggle must be 0 or 1" >&2
+    exit 2
+  fi
+done
+
+if [[ "$ENABLE_GEYSER" == "1" ]]; then
+  if [[ -n "${GEYSER_CONFIG:-}" ]]; then
+    GEYSER_CONFIG_PATH=$GEYSER_CONFIG
+  else
+    GEYSER_CONFIG_SOURCE=/root/sol/bin/yellowstone-config.json
+    if [[ ! -f "$GEYSER_CONFIG_SOURCE" ]]; then
+      echo "[ERROR] Yellowstone config was not found: $GEYSER_CONFIG_SOURCE" >&2
+      exit 1
+    fi
+
+    case "$PROFILE" in
+      128g)
+        GEYSER_CHANNEL_CAPACITY="50_000"
+        GEYSER_UNARY_LIMIT=128
+        ;;
+      192g)
+        GEYSER_CHANNEL_CAPACITY="100_000"
+        GEYSER_UNARY_LIMIT=256
+        ;;
+      *)
+        GEYSER_CHANNEL_CAPACITY="200_000"
+        GEYSER_UNARY_LIMIT=1000
+        ;;
+    esac
+
+    if ! command -v jq >/dev/null 2>&1; then
+      echo "[ERROR] jq is required to generate the profile-specific Yellowstone config" >&2
+      exit 1
+    fi
+    mkdir -p /run/solana-rpc
+    GEYSER_CONFIG_PATH="/run/solana-rpc/yellowstone-${PROFILE}.json"
+    jq --arg capacity "$GEYSER_CHANNEL_CAPACITY" \
+      --argjson unary "$GEYSER_UNARY_LIMIT" \
+      '.grpc.channel_capacity = $capacity | .grpc.unary_concurrency_limit = $unary' \
+      "$GEYSER_CONFIG_SOURCE" >"$GEYSER_CONFIG_PATH"
+  fi
+
+  if [[ ! -r "$GEYSER_CONFIG_PATH" ]]; then
+    echo "[ERROR] Yellowstone config is not readable: $GEYSER_CONFIG_PATH" >&2
+    exit 1
+  fi
+fi
+
+if [[ -n "${VALIDATOR_BIN:-}" ]]; then
+  if [[ ! -x "$VALIDATOR_BIN" ]]; then
+    echo "[ERROR] VALIDATOR_BIN is not executable: $VALIDATOR_BIN" >&2
+    exit 2
+  fi
+  VALIDATOR_CMD=$VALIDATOR_BIN
+elif command -v agave-validator >/dev/null 2>&1; then
+  VALIDATOR_CMD=$(command -v agave-validator)
+elif command -v solana-validator >/dev/null 2>&1; then
+  VALIDATOR_CMD=$(command -v solana-validator)
+else
+  echo "[ERROR] agave-validator or solana-validator was not found" >&2
   exit 1
 fi
 
-echo "Launching: $(basename $CONFIG_FILE)"
+ARGS=(
+  --ledger /root/sol/ledger
+  --accounts /root/sol/accounts
+  --identity /root/sol/bin/validator-keypair.json
+  --snapshots /root/sol/snapshot
+  --log /root/solana-rpc.log
+  --entrypoint entrypoint.mainnet-beta.solana.com:8001
+  --entrypoint entrypoint2.mainnet-beta.solana.com:8001
+  --entrypoint entrypoint3.mainnet-beta.solana.com:8001
+  --entrypoint entrypoint4.mainnet-beta.solana.com:8001
+  --entrypoint entrypoint5.mainnet-beta.solana.com:8001
+  --known-validator Certusm1sa411sMpV9FPqU5dXAYhmmhygvxJ23S6hJ24
+  --known-validator 7Np41oeYqPefeNQEHSv1UDhYrehxin3NStELsSKCT4K2
+  --known-validator GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ
+  --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S
+  --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ
+  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d
+  --only-known-rpc
+  --no-port-check
+  --dynamic-port-range "$DYNAMIC_PORT_RANGE"
+  --gossip-port "$GOSSIP_PORT"
+  --rpc-bind-address 0.0.0.0
+  --rpc-port 8899
+  --full-rpc-api
+  --private-rpc
+  --rpc-threads "$RPC_THREADS"
+  --rpc-max-multiple-accounts 50
+  --rpc-max-request-body-size 20971520
+  --rpc-bigtable-timeout 180
+  --rpc-send-retry-ms 1000
+  --no-snapshots
+  --minimal-snapshot-download-speed 10485760
+  --use-snapshot-archives-at-startup when-newest
+  --limit-ledger-size 50000000
+  --wal-recovery-mode skip_any_corrupted_record
+  --accounts-index-limit minimal
+  --accounts-db-access-storages-method file
+  --accounts-db-cache-limit-mb "$ACCOUNTS_CACHE_MB"
+  --accounts-index-scan-results-limit-mb 256
+  --accounts-shrink-ratio 0.80
+  --accounts-index-bins "$ACCOUNTS_INDEX_BINS"
+  --health-check-slot-distance 150
+  --no-voting
+  --allow-private-addr
+  --bind-address 0.0.0.0
+)
+
+if [[ "$ENABLE_GEYSER" == "1" ]]; then
+  ARGS+=(--geyser-plugin-config "$GEYSER_CONFIG_PATH")
+fi
+
+if [[ "$ENABLE_ALT_INDEX" == "1" ]]; then
+  ARGS+=(
+    --account-index program-id
+    --account-index-include-key AddressLookupTab1e1111111111111111111111111
+  )
+fi
+
+if [[ "$ENABLE_TX_HISTORY" == "1" ]]; then
+  ARGS+=(--enable-rpc-transaction-history)
+fi
+
+echo "=================================================================="
+echo "Solana RPC profile: $PROFILE_LABEL"
+echo "System RAM: ${TOTAL_MEM_GB}GB"
+echo "RPC threads: $RPC_THREADS | Accounts cache: ${ACCOUNTS_CACHE_MB}MB | Index bins: $ACCOUNTS_INDEX_BINS"
+echo "Accounts shrink ratio: 0.80 | Disk-backed index: minimal"
+echo "Geyser: $ENABLE_GEYSER | ALT index: $ENABLE_ALT_INDEX | TX history: $ENABLE_TX_HISTORY"
+if [[ "$ENABLE_GEYSER" == "1" ]]; then
+  echo "Geyser config: $GEYSER_CONFIG_PATH"
+fi
+echo "Validator: $VALIDATOR_CMD"
 echo "=================================================================="
 
-# Execute the selected configuration
-exec "$CONFIG_FILE"
+exec "$VALIDATOR_CMD" "${ARGS[@]}"

@@ -56,6 +56,7 @@ read_service_memory() {
     command -v systemctl >/dev/null 2>&1 || return 0
 
     local memory_current memory_peak memory_high memory_max control_group peak_file
+    local memory_events memory_breakdown swap_current
     memory_current=$(systemctl show "$SERVICE_NAME" -p MemoryCurrent --value 2>/dev/null || true)
     memory_peak=$(systemctl show "$SERVICE_NAME" -p MemoryPeak --value 2>/dev/null || true)
     memory_high=$(systemctl show "$SERVICE_NAME" -p MemoryHigh --value 2>/dev/null || true)
@@ -73,15 +74,42 @@ read_service_memory() {
     fi
 
     log_metric "CGROUP_MEMORY CURRENT=${memory_current:-unavailable} PEAK=$memory_peak HIGH=${memory_high:-unavailable} MAX=${memory_max:-unavailable}"
+
+    control_group=${control_group:-$(systemctl show "$SERVICE_NAME" -p ControlGroup --value 2>/dev/null || true)}
+    if [[ -n "$control_group" ]]; then
+        if [[ -r "/sys/fs/cgroup${control_group}/memory.events" ]]; then
+            memory_events=$(tr '\n' ' ' <"/sys/fs/cgroup${control_group}/memory.events")
+            log_metric "CGROUP_MEMORY_EVENTS $memory_events"
+        fi
+        if [[ -r "/sys/fs/cgroup${control_group}/memory.stat" ]]; then
+            memory_breakdown=$(awk '$1 ~ /^(anon|file|slab|sock)$/ {printf "%s=%s ", $1, $2}' \
+                "/sys/fs/cgroup${control_group}/memory.stat")
+            log_metric "CGROUP_MEMORY_STAT $memory_breakdown"
+        fi
+        if [[ -r "/sys/fs/cgroup${control_group}/memory.swap.current" ]]; then
+            swap_current=$(<"/sys/fs/cgroup${control_group}/memory.swap.current")
+            log_metric "CGROUP_SWAP_CURRENT=$swap_current"
+        fi
+    fi
 }
 
 # Check if validator is running (Jito/Agave: agave-validator or solana-validator)
 check_validator_running() {
+    local main_pid process_name
+    main_pid=$(systemctl show "$SERVICE_NAME" -p MainPID --value 2>/dev/null || true)
+    if is_uint "$main_pid" && ((main_pid > 0)) && [[ -r "/proc/$main_pid/comm" ]]; then
+        process_name=$(<"/proc/$main_pid/comm")
+        if [[ "$process_name" == "agave-validator" || "$process_name" == "solana-validato" ]]; then
+            VALIDATOR_PID=$main_pid
+            return 0
+        fi
+    fi
+
     if pgrep -x agave-validator >/dev/null; then
         VALIDATOR_PID=$(pgrep -x agave-validator | head -n1)
         return 0
-    elif pgrep -x solana-validator >/dev/null; then
-        VALIDATOR_PID=$(pgrep -x solana-validator | head -n1)
+    elif pgrep -f '(^|/)solana-validator( |$)' >/dev/null; then
+        VALIDATOR_PID=$(pgrep -f '(^|/)solana-validator( |$)' | head -n1)
         return 0
     else
         alert "Validator is NOT running!"
@@ -89,11 +117,23 @@ check_validator_running() {
     fi
 }
 
+read_cpu_totals() {
+    local _label user nice system idle iowait irq softirq steal _guest _guest_nice
+    read -r _label user nice system idle iowait irq softirq steal _guest _guest_nice </proc/stat
+    echo "$((user + nice + system + idle + iowait + irq + softirq + steal)) $((idle + iowait))"
+}
+
 # CPU metrics
 check_cpu() {
-    local cpu_usage cpu_int validator_cpu
-    cpu_usage=$(LC_ALL=C top -bn2 -d 0.5 2>/dev/null | awk '/Cpu\(s\)/ {value=$2} END {print value}' || true)
-    [[ $cpu_usage =~ ^[0-9]+([.][0-9]+)?$ ]] || cpu_usage=0
+    local total_before idle_before total_after idle_after total_delta idle_delta
+    local cpu_usage cpu_int validator_cpu thread_snapshot
+    read -r total_before idle_before < <(read_cpu_totals)
+    sleep 0.5
+    read -r total_after idle_after < <(read_cpu_totals)
+    total_delta=$((total_after - total_before))
+    idle_delta=$((idle_after - idle_before))
+    cpu_usage=$(awk -v total="$total_delta" -v idle="$idle_delta" \
+        'BEGIN {if (total <= 0) print "0.0"; else printf "%.1f", (total-idle)*100/total}')
     cpu_int=${cpu_usage%.*}
 
     log_metric "CPU_USAGE=${cpu_usage}%"
@@ -104,15 +144,23 @@ check_cpu() {
 
     if check_validator_running; then
         validator_cpu=$(ps -p "$VALIDATOR_PID" -o %cpu= 2>/dev/null || echo "0")
+        validator_cpu=${validator_cpu//[[:space:]]/}
         log_metric "VALIDATOR_CPU=${validator_cpu}%"
         echo -e "${BLUE}CPU:${NC} System=${cpu_usage}% Validator=${validator_cpu}%"
+
+        thread_snapshot=$(ps -L -p "$VALIDATOR_PID" \
+            -o tid=,psr=,pcpu=,stat=,comm= --sort=-pcpu 2>/dev/null | head -n 12 || true)
+        if [[ -n "$thread_snapshot" ]]; then
+            echo -e "${BLUE}Top validator threads (TID CPU %CPU STAT NAME):${NC}"
+            printf '%s\n' "$thread_snapshot" | tee -a "$LOGFILE"
+        fi
     fi
 }
 
 # Memory metrics
 check_memory() {
     local mem_total mem_used mem_available mem_percent
-    local validator_mem validator_threads memory_pressure
+    local validator_mem validator_threads pressure resource
     mem_total=$(free -m | awk 'NR==2{print $2}')
     mem_used=$(free -m | awk 'NR==2{print $3}')
     mem_available=$(free -m | awk 'NR==2{print $7}')
@@ -133,11 +181,12 @@ check_memory() {
 
     read_service_memory
 
-    if [[ -r /proc/pressure/memory ]]; then
-        memory_pressure=$(tr '\n' ' ' </proc/pressure/memory)
-        log_metric "MEMORY_PRESSURE $memory_pressure"
-        echo -e "${BLUE}Pressure:${NC} $memory_pressure"
-    fi
+    for resource in cpu memory io; do
+        [[ -r "/proc/pressure/$resource" ]] || continue
+        pressure=$(tr '\n' ' ' <"/proc/pressure/$resource")
+        log_metric "${resource^^}_PRESSURE $pressure"
+        echo -e "${BLUE}${resource^^} pressure:${NC} $pressure"
+    done
 }
 
 # Disk I/O metrics
@@ -177,8 +226,14 @@ check_disk() {
     # I/O stats
     if command -v iostat >/dev/null 2>&1; then
         local io_stats
-        io_stats=$(iostat -x 1 2 | grep -E 'nvme|sd' | tail -n1 || true)
-        [[ -n "$io_stats" ]] && log_metric "DISK_IO: $io_stats"
+        io_stats=$(iostat -xz 1 2 2>/dev/null | awk '
+            /^Device/ {sample++; next}
+            sample >= 2 && ($1 ~ /^nvme/ || $1 ~ /^sd/) {print}
+        ' || true)
+        if [[ -n "$io_stats" ]]; then
+            echo -e "${BLUE}Disk I/O (second sample):${NC}"
+            printf '%s\n' "$io_stats" | tee -a "$LOGFILE"
+        fi
     fi
 }
 
@@ -246,7 +301,7 @@ check_validator_health() {
 # System performance issues
 check_performance_issues() {
     # Check for OOM kills
-    if dmesg -T | tail -n 100 | grep -qi "out of memory"; then
+    if dmesg -T 2>/dev/null | tail -n 100 | grep -qi "out of memory"; then
         alert "OOM killer detected in recent logs!"
     fi
 
@@ -257,7 +312,7 @@ check_performance_issues() {
     fi
 
     # Check for CPU throttling
-    if dmesg -T | tail -n 100 | grep -qi "cpu.*throttl"; then
+    if dmesg -T 2>/dev/null | tail -n 100 | grep -qi "cpu.*throttl"; then
         warn "CPU throttling detected!"
     fi
 
@@ -302,8 +357,10 @@ continuous_monitor() {
 }
 
 diagnostic_report() {
-    local report_file
+    local report_file validator_binary
     mkdir -p "$DIAGNOSTIC_DIR"
+    find "$DIAGNOSTIC_DIR" -maxdepth 1 -type f -name 'solana-diagnostic-*.log' \
+        -mtime +7 -delete 2>/dev/null || true
     report_file="$DIAGNOSTIC_DIR/solana-diagnostic-$(date '+%Y%m%d-%H%M%S').log"
 
     {
@@ -328,6 +385,16 @@ diagnostic_report() {
         echo "### Validator process"
         if check_validator_running; then
             ps -p "$VALIDATOR_PID" -o pid,ppid,lstart,etime,%cpu,%mem,rss,vsz,nlwp,stat,cmd
+            echo "Binary: $(readlink -f "/proc/$VALIDATOR_PID/exe" 2>/dev/null || true)"
+            validator_binary=$(readlink -f "/proc/$VALIDATOR_PID/exe" 2>/dev/null || true)
+            if [[ -n "$validator_binary" ]]; then
+                "$validator_binary" --version 2>&1 || true
+            fi
+            echo "Command line:"
+            tr '\0' ' ' <"/proc/$VALIDATOR_PID/cmdline" 2>/dev/null || true
+            echo
+            echo "Top threads:"
+            ps -L -p "$VALIDATOR_PID" -o tid,psr,pcpu,stat,comm --sort=-pcpu 2>/dev/null | head -n 25 || true
             echo "Open files: $(find "/proc/$VALIDATOR_PID/fd" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l)"
             echo "Limits:"
             cat "/proc/$VALIDATOR_PID/limits" 2>/dev/null || true
@@ -338,6 +405,16 @@ diagnostic_report() {
         free -h
         swapon --show 2>/dev/null || true
         cat /proc/pressure/memory 2>/dev/null || true
+        cat /proc/pressure/cpu 2>/dev/null || true
+        cat /proc/pressure/io 2>/dev/null || true
+
+        echo
+        echo "### Host tuning"
+        sysctl net.core.rmem_max net.core.wmem_max net.core.netdev_max_backlog \
+            vm.max_map_count vm.dirty_background_bytes vm.dirty_bytes fs.nr_open 2>&1 || true
+        grep -H . /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor \
+            /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference \
+            /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null || true
 
         echo
         echo "### Filesystems"

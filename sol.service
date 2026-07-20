@@ -12,8 +12,7 @@ RestartSec=30
 User=root
 LimitNOFILE=1000000
 LimitNPROC=1000000
-LimitMEMLOCK=infinity
-LimitSTACK=infinity
+LimitMEMLOCK=2000000000
 LimitCORE=infinity
 LogRateLimitIntervalSec=0
 Environment="PATH=/usr/local/solana/bin:/usr/bin:/bin"
@@ -24,10 +23,10 @@ OOMScoreAdjust=-500
 # Latency-sensitive replay must not be throttled by memory.high. Keep only a
 # hard last-resort boundary so the operating system retains recovery headroom.
 MemoryHigh=infinity
-MemoryMax=95%
+MemoryMax=90%
 # CPU affinity and scheduling
 Nice=-10
-IOSchedulingClass=realtime
+IOSchedulingClass=best-effort
 IOSchedulingPriority=0
 # Watchdog disabled - node initialization takes longer than 2 minutes
 # WatchdogSec=120

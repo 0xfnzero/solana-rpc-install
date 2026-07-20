@@ -70,14 +70,26 @@ if [[ -z "$VALIDATOR_CMD" ]]; then
 fi
 
 validator_help=$("$VALIDATOR_CMD" --help 2>&1 || true)
-if ! grep -q -- '--no-snapshots' <<<"$validator_help"; then
-  echo "[ERROR] Installed validator does not support --no-snapshots: $VALIDATOR_CMD" >&2
-  exit 1
-fi
+required_validator_flags=(
+  --no-snapshots
+  --accounts-index-limit
+  --accounts-db-access-storages-method
+  --accounts-db-cache-limit-mb
+  --accounts-index-scan-results-limit-mb
+  --accounts-shrink-ratio
+  --accounts-index-bins
+)
+for flag in "${required_validator_flags[@]}"; do
+  if ! grep -q -- "$flag" <<<"$validator_help"; then
+    echo "[ERROR] Installed validator does not support $flag: $VALIDATOR_CMD" >&2
+    exit 1
+  fi
+done
 
 missing_packages=()
 command -v iostat >/dev/null 2>&1 || missing_packages+=(sysstat)
 command -v logrotate >/dev/null 2>&1 || missing_packages+=(logrotate)
+command -v jq >/dev/null 2>&1 || missing_packages+=(jq)
 if ((${#missing_packages[@]} > 0)); then
   apt-get update -qq
   apt-get install -y "${missing_packages[@]}"

@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-    <strong>使用稳定、经过验证的配置部署久经考验的 Solana RPC 节点，支持 GitHub 源码编译和 Jito 预编译版本。</strong>
+    <strong>使用保守配置、完整监控和 GitHub 源码编译部署 Solana RPC 节点。</strong>
 </p>
 
 <p align="center">
@@ -51,9 +51,9 @@
 |------|------|
 | `1-prepare.sh` | 挂载 NVMe 数据盘、创建 Solana 目录并应用 Linux 系统优化 |
 | `2-install-jito-validator.sh` | 从源码构建并安装 Jito Solana / Agave validator |
-| `3-start.sh` | 下载快照、安装 systemd 服务并启动 RPC 节点 |
+| `3-start.sh` | 复用或下载快照、安装 systemd 服务并启动 RPC 节点；默认不删除数据 |
 | `validator.sh` | 根据 128GB、192GB、256GB、512GB+ 内存自动选择 validator 配置 |
-| `yellowstone-config.json` | 经过生产测试的 Yellowstone gRPC Geyser 配置 |
+| `yellowstone-config.json` | Yellowstone gRPC Geyser 基础配置 |
 | `performance-monitor.sh`, `get_health.sh`, `catchup.sh` | 查看节点健康状态、内存、性能和同步进度 |
 | `update-runtime.sh` | 不删除节点数据，更新运行参数和监控脚本 |
 | `logrotate-solana-rpc` | 轮转并压缩 validator 和监控日志 |
@@ -83,7 +83,7 @@ sudo su -
 
 # 克隆仓库到 /root 目录
 cd /root
-git clone https://github.com/0xfnzero/solana-rpc-install.git
+git clone --branch dev --single-branch https://github.com/0xfnzero/solana-rpc-install.git
 cd solana-rpc-install
 
 # 步骤 1: 挂载磁盘 + 系统优化
@@ -92,13 +92,21 @@ bash 1-prepare.sh
 # (可选) 验证挂载配置
 bash verify-mounts.sh
 
-# 步骤 2: 从源码构建 Jito Solana (15-30 分钟)
+# 步骤 2: 使用原生 CPU 指令和 LTO 从源码构建 Jito Solana
 bash 2-install-jito-validator.sh
-# 直接回车安装 v4.1.1，或输入指定版本 (例如: v4.1.0-rc.1)
+# 直接回车安装已验证的稳定版 v4.1.2，也可以输入其它真实存在的 Jito 标签
 # 支持 stable、rc、beta 等 Jito 标签
 
 # 步骤 3: 下载快照并启动节点
 bash 3-start.sh
+```
+
+重复运行 `3-start.sh` 会保留 ledger、accounts 和 snapshot，并复用已有完整快照。
+只有明确需要删除数据并重新同步时，才执行：
+
+```bash
+bash 3-start.sh --fresh-sync
+# 脚本要求再次输入 FRESH-SYNC，之后才会删除节点数据。
 ```
 
 > **ℹ️ 安装方式**
@@ -106,7 +114,7 @@ bash 3-start.sh
 
 ## ⚠️ 重要：内存管理详解 (128GB 系统必读)
 
-Agave 内存占用取决于具体版本、账户索引、RPC 流量和 Geyser 订阅，不能继续使用旧版本的固定 GB 数值判断。针对社区常见的 128GB 和 192GB 节点，服务不设置 `MemoryHigh` 软限流，避免 cgroup 强回收拖慢 replay；仅保留 `MemoryMax=95%` 作为主机失控时的最后保护。
+Agave 内存占用取决于具体版本、账户索引、RPC 流量和 Geyser 订阅，不能继续使用旧版本的固定 GB 数值判断。针对社区常见的 128GB 和 192GB 节点，服务不设置 `MemoryHigh` 软限流，避免 cgroup 强回收拖慢 replay；仅保留 `MemoryMax=90%` 作为主机失控时的最后保护，为内核、文件缓存、SSH 和监控保留至少 10% 内存。
 
 ### 🔧 Swap 管理 (128GB 系统可选)
 
@@ -158,6 +166,9 @@ bash /root/performance-monitor.sh journal
 # 性能监控
 bash /root/performance-monitor.sh snapshot
 
+# 输出包含高占用 Agave 线程和 CPU/内存/I/O pressure
+# 重点观察持续出现的 solAcctsDbBg*、rocksdb:* 和 solPohTickProd
+
 # 完整诊断报告（打印并保存到 /var/log）
 bash /root/performance-monitor.sh diagnose
 
@@ -177,6 +188,7 @@ bash /root/performance-monitor.sh monitor
 - 持续监控指标：`/var/log/solana-performance.log`
 - 完整诊断报告：`/var/log/solana-diagnostic-YYYYMMDD-HHMMSS.log`
 - Validator 和监控日志每天轮转、压缩，并保留 7 份。
+- 每次生成新诊断报告时，会清理 7 天前的旧诊断报告。
 
 在不清理节点数据的情况下更新现有节点：
 
@@ -186,44 +198,56 @@ sudo bash update-runtime.sh
 sudo bash update-runtime.sh --restart
 ```
 
+现有节点如需应用新的 sysctl、CPU、THP 和网卡 ring 配置，请在维护窗口先执行
+`sudo bash system-optimize.sh`，再更新运行配置。该命令会关闭 swap；128GB 用户如果
+明确需要可选 swapfile，应在系统优化后重新执行 `sudo bash add-swap-128g.sh`。
+
 ## ✨ 核心特性
 
-### 🔧 久经考验的配置理念
+### 🔧 配置理念
 
-所有配置基于**经过验证的生产部署**，拥有数千小时的正常运行时间：
+默认配置优先考虑 128GB/192GB 稳定性、上游兼容性和可诊断性：
 
 - **保守稳定 > 激进优化**
 - **简单默认 > 复杂定制**
-- **经过验证的性能 > 理论收益**
+- **实测性能 > 理论收益**
 
 ### 📦 系统优化
 
-- 🌐 **TCP 拥塞控制**: Westwood (经典、稳定的算法)
-- 🔧 **TCP 缓冲区**: 12MB (保守、低延迟优化)
-- 💾 **文件描述符**: 1M 限制 (生产环境足够)
-- 🛡️ **内存管理**: swappiness=30 (平衡方式)
-- 🔄 **VM 设置**: 保守的脏页比率，确保稳定性
+- 🌐 **Socket 缓冲区上限**: 128MB，与 Anza validator 基础配置一致
+- 💾 **资源限制**: 100 万文件描述符和 2GB memlock
+- 🔄 **有界回写**: 后台脏页 512MB、硬上限 2GB，减少集中写盘
+- ⚡ **CPU 策略**: 持久化 performance governor、EPP performance 和 turbo
+- 🧠 **内存延迟**: 运行时关闭 Transparent Huge Pages
+- 🌐 **网卡 Ring**: 自动读取并设置为网卡报告的最大值
+- 🛡️ **保守范围**: 不修改 SMT、C-state、IRQ affinity、内核或 GRUB
 
 ### ⚡ Yellowstone gRPC 配置
 
-- ✅ **启用压缩**: gzip + zstd (减少内存拷贝开销)
-- 📦 **保守缓冲区**: 50M 快照, 200K 通道 (快速处理)
-- 🎯 **经过验证的默认值**: 系统管理的 Tokio，默认 HTTP/2 设置
-- 🛡️ **资源保护**: 严格的过滤器限制防止滥用
+- ✅ **可选压缩**: 客户端可协商 gzip/zstd，以 CPU 换取带宽
+- 📦 **分档队列**: 128GB 使用 50K channel/128 unary；192GB 使用 100K/256
+- 🎯 **上游默认**: Tokio 和 HTTP/2 参数保持默认
+- 🛡️ **资源保护**: 限制过滤器和请求数量；鉴权仍为可选项
+
+启动器会在 `/run/solana-rpc` 生成分档配置，不修改原始
+`yellowstone-config.json`。设置 `GEYSER_CONFIG=/path/to/custom.json` 可以完全使用
+自定义配置；`ENABLE_GEYSER=0`、`ENABLE_ALT_INDEX=0`、`ENABLE_TX_HISTORY=0`
+可以分别关闭对应负载，默认安装行为保持不变。
 
 ### 🚀 部署特性
 
 - 📦 **源码编译安装**:
-  - 🔧 从官方 GitHub 构建 Jito Solana (15-30 分钟)
+  - 🔧 从官方 GitHub 构建 Jito Solana (启用 LTO 后通常 30-90 分钟)
+  - ⚡ 使用同机原生 CPU 指令和 Jito release-with-LTO profile
   - ✅ 完整的 validator 二进制文件和完整 MEV 支持
-  - 🎯 100% 符合 Jito Foundation 官方标准
+  - 🎯 验证 Jito release tag 并记录源码 commit
 - 🧠 **智能配置选择**: 自动检测系统 RAM 并选择最优 validator 配置
   - TIER 1 (128GB): 保守配置，适用于 128-159GB 系统
   - TIER 2 (192GB): 平衡配置，适用于 192-223GB 系统
   - TIER 3 (256GB): 高性能配置，适用于 256-383GB 系统
   - TIER 4 (512GB+): 最大容量配置，适用于企业级部署
 - 🔄 **自动磁盘管理**: 智能磁盘检测和挂载
-- 🛡️ **生产就绪**: Systemd 服务，主机内存最后保护和 OOM 诊断
+- 🛡️ **生产就绪**: Systemd 服务，90% 主机内存最后保护和 OOM 诊断
 - 🌐 **网络容错**: 增强版本验证，优雅处理网络问题
 - 📊 **监控工具**: 包含性能跟踪和健康检查
 - 📸 **只加载快照**: 使用下载的归档启动，不再持续生成完整快照
@@ -234,16 +258,28 @@ sudo bash update-runtime.sh --restart
 |------|------|------|
 | **8899** | HTTP | RPC 端点 |
 | **8900** | WebSocket | 实时订阅 |
-| **10900** | gRPC | 高性能数据流 |
+| **10900** | gRPC | 高性能数据流；为兼容现有客户端默认开放 |
 | **8000-8030** | TCP/UDP | 验证者通信 (动态) |
+
+安装器不会强制 gRPC token，现有客户端无需增加 metadata。固定出口 IP 的用户可选：
+
+```bash
+ufw delete allow 10900
+ufw allow from 客户端公网IP to any port 10900 proto tcp
+ufw deny 10900/tcp
+ufw status numbered
+```
+
+IP 白名单配置简单，但客户端公网 IP 变化后必须同步修改。Token 更适合 IP 经常变化的
+客户端，但每个客户端都必须携带 token，因此本项目不默认启用。
 
 ## 📈 性能指标
 
 - **快照下载**: 取决于网络 (通常 200MB - 1GB/s)
-- **内存保护**: 不设置影响延迟的软限流，95% 为主机最后保护
+- **内存保护**: 不设置影响延迟的软限流，90% 为主机最后保护
 - **同步时间**: 1-3 小时 (从快照开始)
 - **CPU 使用**: 多核优化 (推荐 32+ 核心)
-- **稳定性**: 经过验证的配置，生产环境正常运行时间 >99.9%
+- **稳定性**: 保守默认值，并提供 cgroup、pressure、磁盘和线程诊断
 
 ## 🛠️ 架构说明
 
@@ -254,22 +290,22 @@ sudo bash update-runtime.sh --restart
 │  Jito Solana 验证者 (v4.1.x)                            │
 │  ├─ 安装方式: 从 GitHub 源码编译                         │
 │  │  • agave-validator 完整 MEV 支持                     │
-│  │  • 100% 符合 Jito Foundation 标准 (15-30 分钟)      │
+│  │  • 原生 CPU + release-with-LTO 构建                  │
 │  ├─ Yellowstone gRPC 自动匹配 Solana 版本               │
 │  ├─ RPC HTTP/WebSocket (端口 8899/8900)                │
 │  └─ 账户 & 账本 (优化的 RocksDB)                        │
 ├─────────────────────────────────────────────────────────┤
-│  系统优化 (久经考验)                                      │
-│  ├─ TCP: 12MB 缓冲区, Westwood 拥塞控制                 │
-│  ├─ 内存: swappiness=30, 平衡的 VM 设置                 │
+│  系统优化 (保守配置)                                      │
+│  ├─ 网络: Anza 128MB socket 上限                        │
+│  ├─ 内存: 有界脏页回写, THP 已关闭                       │
 │  ├─ 文件描述符: 1M 限制, 生产环境足够                    │
-│  └─ 稳定性: 保守的默认值, 生产环境验证                   │
+│  └─ 稳定性: 保守默认值 + 完整诊断                        │
 ├─────────────────────────────────────────────────────────┤
 │  Yellowstone gRPC (开源测试配置)                         │
-│  ├─ 压缩: 启用 gzip+zstd (快速处理)                      │
-│  ├─ 缓冲区: 50M 快照, 200K 通道 (低延迟)                │
+│  ├─ 压缩: 客户端可协商 gzip+zstd                         │
+│  ├─ 队列: 128GB 50K/128, 192GB 100K/256                │
 │  ├─ 默认值: 系统管理, 无过度优化                         │
-│  └─ 保护: 严格过滤器, 资源限制                           │
+│  └─ 保护: 过滤器和请求限制                               │
 ├─────────────────────────────────────────────────────────┤
 │  基础设施                                                 │
 │  ├─ Systemd 服务 (自动重启, 优雅关闭)                   │
@@ -282,40 +318,30 @@ sudo bash update-runtime.sh --restart
 
 ### 为什么选择保守配置？
 
-基于大量生产测试，我们发现：
+1. **压缩存在权衡**
+   - gzip/zstd 可以减少网络带宽，但会消耗 CPU。
+   - 应根据实际客户端流量测试，而不是默认认为一定降低延迟。
 
-1. **启用压缩 = 更低延迟**
-   - 即使在本地主机上，压缩数据在内存中传输更快
-   - CPU 开销很小，延迟降低显著
+2. **队列按内存分档并设置上限**
+   - 128GB 节点每连接使用 50K channel，192GB 使用 100K。
+   - 慢客户端可能落后或重连，避免无限消耗节点内存。
 
-2. **更小的缓冲区 = 更快的处理**
-   - 50M 快照 vs 250M: 更少的队列延迟，更快的吞吐量
-   - 200K 通道 vs 1.5M: 减少"缓冲区膨胀"延迟
+3. **无关运行参数保持上游默认**
+   - 不覆盖 Tokio 和 HTTP/2 线程/窗口配置。
+   - 不关闭 SMT/C-state，不设置 IRQ affinity，不修改内核和 GRUB。
 
-3. **系统默认值 = 更好的稳定性**
-   - 无自定义 Tokio 线程: 让系统自动管理
-   - 无自定义 HTTP/2 设置: 默认值已经优化
-   - 更少的自定义参数 = 更少的潜在问题
-
-4. **生产环境验证**
-   - 数千小时的正常运行时间
-   - 在不同硬件配置下测试
-   - 在真实负载下久经考验
-
-### 📚 备份配置
-
-如果您需要针对特定用例的激进优化配置：
-- 极限配置已备份为 `yellowstone-config-extreme-backup.json`
-- 可在仓库历史中访问 (提交 6cc31d9)
+4. **修改限制前先收集数据**
+   - 使用 `performance-monitor.sh snapshot` 查看线程和 pressure。
+   - 上报重启或同步问题前，先运行 `performance-monitor.sh diagnose`。
 
 ## 📚 文档资源
 
 - **安装指南**: 您正在阅读！
-- **挂载策略**: 查看 [MOUNT_STRATEGY.md](MOUNT_STRATEGY.md)
+- **挂载验证**: 运行 `sudo bash verify-mounts.sh`
 - **故障排除**: 使用 `journalctl -u sol -f` 查看日志
 - **配置**: 所有优化默认包含
 - **监控**: 使用提供的辅助脚本
-- **优化详情**: 查看 `YELLOWSTONE_OPTIMIZATION.md`
+- **优化详情**: 查看上面的系统优化和 Yellowstone 章节
 
 ## 🤝 支持与社区
 

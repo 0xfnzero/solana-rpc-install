@@ -75,13 +75,15 @@ fi
 # Set swappiness to minimize swap usage
 echo ""
 echo "==> Setting swappiness=10 (minimize swap usage)..."
-sysctl vm.swappiness=10
-if ! grep -q 'vm.swappiness' /etc/sysctl.conf; then
-  echo 'vm.swappiness=10' >> /etc/sysctl.conf
-  echo "   ✓ Added to /etc/sysctl.conf (persistent)"
-else
-  echo "   ✓ Already in /etc/sysctl.conf"
+SWAP_SYSCTL=/etc/sysctl.d/99-solana-swap.conf
+if [[ -f /etc/sysctl.conf ]]; then
+  sed -i '/^vm\.swappiness=10$/d' /etc/sysctl.conf
 fi
+cat >"$SWAP_SYSCTL" <<'EOF'
+vm.swappiness = 10
+EOF
+sysctl -p "$SWAP_SYSCTL"
+echo "   ✓ Saved to $SWAP_SYSCTL (persistent)"
 
 echo ""
 echo "=================================================================="
