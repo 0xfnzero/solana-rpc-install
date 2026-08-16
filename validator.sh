@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Shared Solana RPC launcher. The profile only changes bounded concurrency and
 # accounts-index sharding; all safety-sensitive flags live in one place.
+# Targets Agave/Jito v4.2+ only (default install: v4.2.1).
 
 TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
 PROFILE=${1:-auto}
@@ -127,23 +128,6 @@ else
   exit 1
 fi
 
-# Probe the installed binary once so renamed/removed flags are applied
-# conditionally without breaking older releases (v4.1.x and earlier).
-VALIDATOR_HELP=$("$VALIDATOR_CMD" --help 2>&1 || true)
-VALIDATOR_VERSION=$("$VALIDATOR_CMD" --version 2>&1 || true)
-has_flag() {
-  grep -q -- "$1" <<<"$VALIDATOR_HELP"
-}
-
-# Parse "major.minor" out of e.g. "agave-validator 4.2.1 (src:...)" so the
-# launcher can fall back to a version check when --help hides a flag.
-VALIDATOR_MAJOR=0
-VALIDATOR_MINOR=0
-if [[ "$VALIDATOR_VERSION" =~ (^|[^0-9])([0-9]+)\.([0-9]+) ]]; then
-  VALIDATOR_MAJOR=${BASH_REMATCH[2]}
-  VALIDATOR_MINOR=${BASH_REMATCH[3]}
-fi
-
 ARGS=(
   --ledger /root/sol/ledger
   --accounts /root/sol/accounts
@@ -163,6 +147,7 @@ ARGS=(
   --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d
   --only-known-rpc
   --no-port-check
+  --no-xdp
   --dynamic-port-range "$DYNAMIC_PORT_RANGE"
   --gossip-port "$GOSSIP_PORT"
   --rpc-bind-address 0.0.0.0
@@ -180,6 +165,7 @@ ARGS=(
   --limit-ledger-size 50000000
   --wal-recovery-mode skip_any_corrupted_record
   --accounts-index-limit minimal
+  --accounts-db-write-cache-limit "${ACCOUNTS_CACHE_MB}MB"
   --accounts-index-scan-results-limit-mb 256
   --accounts-shrink-ratio 0.80
   --accounts-index-bins "$ACCOUNTS_INDEX_BINS"
@@ -188,38 +174,6 @@ ARGS=(
   --allow-private-addr
   --bind-address 0.0.0.0
 )
-
-# Agave v4.2+ enables XDP by default. Gossip egress with --allow-private-addr
-# requires --no-xdp; without it the validator exits immediately on startup.
-# Probe so older binaries that lack the flag (e.g. v4.1.x) still work, and fall
-# back to a version check in case --help does not advertise the flag.
-NO_XDP=0
-if has_flag --no-xdp; then
-  ARGS+=(--no-xdp)
-  NO_XDP=1
-elif (( VALIDATOR_MAJOR > 4 || (VALIDATOR_MAJOR == 4 && VALIDATOR_MINOR >= 2) )); then
-  ARGS+=(--no-xdp)
-  NO_XDP=1
-fi
-
-# The accounts-db write cache flag was renamed in v4.2:
-#   --accounts-db-cache-limit-mb (integer MB) -> --accounts-db-write-cache-limit
-#   (byte size accepting SI/IEC prefixes). The old flag was removed, so fall
-#   back to it only on pre-v4.2 binaries.
-ACCOUNTS_CACHE_FLAG=""
-if has_flag --accounts-db-write-cache-limit; then
-  ARGS+=(--accounts-db-write-cache-limit "${ACCOUNTS_CACHE_MB}MB")
-  ACCOUNTS_CACHE_FLAG="--accounts-db-write-cache-limit ${ACCOUNTS_CACHE_MB}MB"
-elif has_flag --accounts-db-cache-limit-mb; then
-  ARGS+=(--accounts-db-cache-limit-mb "$ACCOUNTS_CACHE_MB")
-  ACCOUNTS_CACHE_FLAG="--accounts-db-cache-limit-mb ${ACCOUNTS_CACHE_MB}"
-fi
-
-# --accounts-db-access-storages-method was removed in v4.2 (file I/O is now the
-# only access method). Keep passing "file" only where the flag still exists.
-if has_flag --accounts-db-access-storages-method; then
-  ARGS+=(--accounts-db-access-storages-method file)
-fi
 
 if [[ "$ENABLE_GEYSER" == "1" ]]; then
   ARGS+=(--geyser-plugin-config "$GEYSER_CONFIG_PATH")
@@ -241,11 +195,11 @@ echo "Solana RPC profile: $PROFILE_LABEL"
 echo "System RAM: ${TOTAL_MEM_GB}GB"
 echo "RPC threads: $RPC_THREADS | Accounts cache: ${ACCOUNTS_CACHE_MB}MB | Index bins: $ACCOUNTS_INDEX_BINS"
 echo "Accounts shrink ratio: 0.80 | Disk-backed index: minimal"
-echo "Geyser: $ENABLE_GEYSER | ALT index: $ENABLE_ALT_INDEX | TX history: $ENABLE_TX_HISTORY | no-xdp: $NO_XDP | accounts-cache: ${ACCOUNTS_CACHE_FLAG:-none}"
+echo "Geyser: $ENABLE_GEYSER | ALT index: $ENABLE_ALT_INDEX | TX history: $ENABLE_TX_HISTORY"
 if [[ "$ENABLE_GEYSER" == "1" ]]; then
   echo "Geyser config: $GEYSER_CONFIG_PATH"
 fi
-echo "Validator: $VALIDATOR_CMD (${VALIDATOR_VERSION})"
+echo "Validator: $VALIDATOR_CMD"
 echo "=================================================================="
 
 exec "$VALIDATOR_CMD" "${ARGS[@]}"
