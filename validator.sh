@@ -174,6 +174,16 @@ ARGS=(
   --bind-address 0.0.0.0
 )
 
+# Agave v4.2+ enables XDP by default. Gossip egress with --allow-private-addr
+# requires --no-xdp; without it the validator exits immediately on startup.
+# Keep the probe so older binaries that lack the flag (e.g. v4.1.x) still work.
+NO_XDP=0
+VALIDATOR_HELP=$("$VALIDATOR_CMD" --help 2>&1 || true)
+if grep -q -- '--no-xdp' <<<"$VALIDATOR_HELP"; then
+  ARGS+=(--no-xdp)
+  NO_XDP=1
+fi
+
 if [[ "$ENABLE_GEYSER" == "1" ]]; then
   ARGS+=(--geyser-plugin-config "$GEYSER_CONFIG_PATH")
 fi
@@ -194,7 +204,7 @@ echo "Solana RPC profile: $PROFILE_LABEL"
 echo "System RAM: ${TOTAL_MEM_GB}GB"
 echo "RPC threads: $RPC_THREADS | Accounts cache: ${ACCOUNTS_CACHE_MB}MB | Index bins: $ACCOUNTS_INDEX_BINS"
 echo "Accounts shrink ratio: 0.80 | Disk-backed index: minimal"
-echo "Geyser: $ENABLE_GEYSER | ALT index: $ENABLE_ALT_INDEX | TX history: $ENABLE_TX_HISTORY"
+echo "Geyser: $ENABLE_GEYSER | ALT index: $ENABLE_ALT_INDEX | TX history: $ENABLE_TX_HISTORY | no-xdp: $NO_XDP"
 if [[ "$ENABLE_GEYSER" == "1" ]]; then
   echo "Geyser config: $GEYSER_CONFIG_PATH"
 fi

@@ -112,7 +112,7 @@ cd /root/solana-rpc-install
 
 # Step 2: Build Jito Solana from source with native CPU + LTO optimizations
 bash 2-install-jito-validator.sh
-# Press Enter to install the tested stable v4.1.2, or enter another existing Jito tag
+# Press Enter to install the tested stable v4.2.1, or enter another existing Jito tag
 # Supports stable, rc, and beta Jito tags
 
 # Step 3: Download snapshot and start node
@@ -231,18 +231,24 @@ git pull --ff-only origin dev
 /usr/local/solana/bin/agave-validator --version
 ```
 
-If the node already runs `v4.1.2-jito`, update only the host and runtime configuration:
+If the node already runs `v4.2.1-jito` (or the same major line), update only the
+host and runtime configuration:
 
 ```bash
 sudo bash system-optimize.sh
 sudo bash update-runtime.sh --restart
 ```
 
-If the node runs `v4.1.0-jito`, `v4.1.1-jito`, or an older release, build the
-tested release first. The final restart briefly interrupts RPC service:
+> **v4.2 note**: Agave/Jito v4.2+ enables XDP by default. This RPC setup uses
+> `--allow-private-addr`, so the launcher automatically adds `--no-xdp`. After
+> upgrading the binary without syncing runtime scripts, the node will
+> crash-loop; always run `update-runtime.sh` above.
+
+If the node runs `v4.1.x-jito` or an older release, build the tested release
+first. The final restart briefly interrupts RPC service:
 
 ```bash
-# Press Enter at the version prompt to select v4.1.2.
+# Press Enter at the version prompt to select v4.2.1.
 # nice reduces build contention with a validator that is still running.
 sudo nice -n 10 bash 2-install-jito-validator.sh
 sudo bash system-optimize.sh
@@ -345,7 +351,7 @@ enabled automatically.
 ┌─────────────────────────────────────────────────────────┐
 │                   Solana RPC Node Stack                  │
 ├─────────────────────────────────────────────────────────┤
-│  Jito Solana Validator (v4.1.x)                         │
+│  Jito Solana Validator (v4.2.x)                         │
 │  ├─ Installation: Source compilation from GitHub        │
 │  │  • agave-validator with full MEV support             │
 │  │  • Native CPU + release-with-LTO build               │

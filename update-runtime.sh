@@ -86,6 +86,14 @@ for flag in "${required_validator_flags[@]}"; do
   fi
 done
 
+# Agave v4.2+ defaults to XDP. Our launcher always passes --allow-private-addr,
+# so --no-xdp must be available or the node will crash-loop after upgrade.
+if ! grep -q -- '--no-xdp' <<<"$validator_help"; then
+  echo "[WARN] Installed validator does not advertise --no-xdp."
+  echo "       Agave/Jito v4.2+ requires it with --allow-private-addr."
+  echo "       If startup fails after upgrade, rebuild with v4.2.1 or newer."
+fi
+
 missing_packages=()
 command -v iostat >/dev/null 2>&1 || missing_packages+=(sysstat)
 command -v logrotate >/dev/null 2>&1 || missing_packages+=(logrotate)

@@ -109,7 +109,7 @@ cd /root/solana-rpc-install
 
 # 步骤 2: 使用原生 CPU 指令和 LTO 从源码构建 Jito Solana
 bash 2-install-jito-validator.sh
-# 直接回车安装已验证的稳定版 v4.1.2，也可以输入其它真实存在的 Jito 标签
+# 直接回车安装已验证的稳定版 v4.2.1，也可以输入其它真实存在的 Jito 标签
 # 支持 stable、rc、beta 等 Jito 标签
 
 # 步骤 3: 下载快照并启动节点
@@ -220,18 +220,22 @@ git pull --ff-only origin dev
 /usr/local/solana/bin/agave-validator --version
 ```
 
-如果已经运行 `v4.1.2-jito`，只更新主机和运行配置：
+如果已经运行 `v4.2.1-jito`（或同主版本线），只更新主机和运行配置：
 
 ```bash
 sudo bash system-optimize.sh
 sudo bash update-runtime.sh --restart
 ```
 
-如果仍是 `v4.1.0-jito`、`v4.1.1-jito` 或更早版本，先编译已验证版本。最后一次
-重启会短暂中断 RPC 服务：
+> **v4.2 注意**：Agave/Jito v4.2+ 默认启用 XDP。本仓库 RPC 配置使用
+> `--allow-private-addr`，启动脚本会自动附加 `--no-xdp`。升级二进制后若未同步
+> 运行脚本，节点会立刻 crash-loop；请务必执行上面的 `update-runtime.sh`。
+
+如果仍是 `v4.1.x-jito` 或更早版本，先编译已验证版本。最后一次重启会短暂中断
+RPC 服务：
 
 ```bash
-# 版本提示处直接回车选择 v4.1.2。
+# 版本提示处直接回车选择 v4.2.1。
 # nice 可减少编译过程对仍在运行的 validator 的影响。
 sudo nice -n 10 bash 2-install-jito-validator.sh
 sudo bash system-optimize.sh
@@ -327,7 +331,7 @@ IP 白名单配置简单，但客户端公网 IP 变化后必须同步修改。T
 ┌─────────────────────────────────────────────────────────┐
 │                   Solana RPC 节点堆栈                     │
 ├─────────────────────────────────────────────────────────┤
-│  Jito Solana 验证者 (v4.1.x)                            │
+│  Jito Solana 验证者 (v4.2.x)                            │
 │  ├─ 安装方式: 从 GitHub 源码编译                         │
 │  │  • agave-validator 完整 MEV 支持                     │
 │  │  • 原生 CPU + release-with-LTO 构建                  │
