@@ -239,10 +239,17 @@ sudo bash system-optimize.sh
 sudo bash update-runtime.sh --restart
 ```
 
-> **v4.2 note**: Agave/Jito v4.2+ enables XDP by default. This RPC setup uses
-> `--allow-private-addr`, so the launcher automatically adds `--no-xdp`. After
-> upgrading the binary without syncing runtime scripts, the node will
-> crash-loop; always run `update-runtime.sh` above.
+> **v4.2 note**: Agave/Jito v4.2+ enables XDP by default and requires
+> `--no-xdp` together with `--allow-private-addr`. It also renamed
+> `--accounts-db-cache-limit-mb` to `--accounts-db-write-cache-limit` and removed
+> `--accounts-db-access-storages-method`. The launcher probes the installed
+> binary and applies the correct flags automatically, but only after the runtime
+> scripts are synced — otherwise the node crash-loops. Always run
+> `update-runtime.sh` above after an upgrade.
+>
+> **v4.3 (upcoming)**: `--limit-ledger-size` will be deprecated in favor of
+> `--limit-blockstore-size`. The launcher keeps the current flag for v4.2 and
+> will switch when v4.3 lands.
 
 If the node runs `v4.1.x-jito` or an older release, build the tested release
 first. The final restart briefly interrupts RPC service:

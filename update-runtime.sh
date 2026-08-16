@@ -73,8 +73,6 @@ validator_help=$("$VALIDATOR_CMD" --help 2>&1 || true)
 required_validator_flags=(
   --no-snapshots
   --accounts-index-limit
-  --accounts-db-access-storages-method
-  --accounts-db-cache-limit-mb
   --accounts-index-scan-results-limit-mb
   --accounts-shrink-ratio
   --accounts-index-bins
@@ -86,11 +84,17 @@ for flag in "${required_validator_flags[@]}"; do
   fi
 done
 
-# Agave v4.2+ defaults to XDP. Our launcher always passes --allow-private-addr,
-# so --no-xdp must be available or the node will crash-loop after upgrade.
-if ! grep -q -- '--no-xdp' <<<"$validator_help"; then
-  echo "[WARN] Installed validator does not advertise --no-xdp."
-  echo "       Agave/Jito v4.2+ requires it with --allow-private-addr."
+# Agave/Jito v4.2 renamed/removed several flags our launcher probes for at
+# runtime. Warn when the installed binary predates v4.2 so an operator knows a
+# rebuild is required before relying on the new behavior.
+missing_v42=()
+grep -q -- '--no-xdp' <<<"$validator_help" || missing_v42+=(--no-xdp)
+grep -q -- '--accounts-db-write-cache-limit' <<<"$validator_help" \
+  || missing_v42+=(--accounts-db-write-cache-limit)
+if ((${#missing_v42[@]} > 0)); then
+  echo "[WARN] Installed validator does not advertise: ${missing_v42[*]}"
+  echo "       These are Agave/Jito v4.2+ flags. The launcher falls back for"
+  echo "       pre-v4.2 binaries, but a v4.2+ node needs them to start."
   echo "       If startup fails after upgrade, rebuild with v4.2.1 or newer."
 fi
 

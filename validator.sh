@@ -127,6 +127,13 @@ else
   exit 1
 fi
 
+# Probe the installed binary once so renamed/removed flags are applied
+# conditionally without breaking older releases (v4.1.x and earlier).
+VALIDATOR_HELP=$("$VALIDATOR_CMD" --help 2>&1 || true)
+has_flag() {
+  grep -q -- "$1" <<<"$VALIDATOR_HELP"
+}
+
 ARGS=(
   --ledger /root/sol/ledger
   --accounts /root/sol/accounts
@@ -163,8 +170,6 @@ ARGS=(
   --limit-ledger-size 50000000
   --wal-recovery-mode skip_any_corrupted_record
   --accounts-index-limit minimal
-  --accounts-db-access-storages-method file
-  --accounts-db-cache-limit-mb "$ACCOUNTS_CACHE_MB"
   --accounts-index-scan-results-limit-mb 256
   --accounts-shrink-ratio 0.80
   --accounts-index-bins "$ACCOUNTS_INDEX_BINS"
@@ -176,12 +181,30 @@ ARGS=(
 
 # Agave v4.2+ enables XDP by default. Gossip egress with --allow-private-addr
 # requires --no-xdp; without it the validator exits immediately on startup.
-# Keep the probe so older binaries that lack the flag (e.g. v4.1.x) still work.
+# Probe so older binaries that lack the flag (e.g. v4.1.x) still work.
 NO_XDP=0
-VALIDATOR_HELP=$("$VALIDATOR_CMD" --help 2>&1 || true)
-if grep -q -- '--no-xdp' <<<"$VALIDATOR_HELP"; then
+if has_flag --no-xdp; then
   ARGS+=(--no-xdp)
   NO_XDP=1
+fi
+
+# The accounts-db write cache flag was renamed in v4.2:
+#   --accounts-db-cache-limit-mb (integer MB) -> --accounts-db-write-cache-limit
+#   (byte size accepting SI/IEC prefixes). The old flag was removed, so fall
+#   back to it only on pre-v4.2 binaries.
+ACCOUNTS_CACHE_FLAG=""
+if has_flag --accounts-db-write-cache-limit; then
+  ARGS+=(--accounts-db-write-cache-limit "${ACCOUNTS_CACHE_MB}MB")
+  ACCOUNTS_CACHE_FLAG="--accounts-db-write-cache-limit ${ACCOUNTS_CACHE_MB}MB"
+elif has_flag --accounts-db-cache-limit-mb; then
+  ARGS+=(--accounts-db-cache-limit-mb "$ACCOUNTS_CACHE_MB")
+  ACCOUNTS_CACHE_FLAG="--accounts-db-cache-limit-mb ${ACCOUNTS_CACHE_MB}"
+fi
+
+# --accounts-db-access-storages-method was removed in v4.2 (file I/O is now the
+# only access method). Keep passing "file" only where the flag still exists.
+if has_flag --accounts-db-access-storages-method; then
+  ARGS+=(--accounts-db-access-storages-method file)
 fi
 
 if [[ "$ENABLE_GEYSER" == "1" ]]; then
@@ -204,7 +227,7 @@ echo "Solana RPC profile: $PROFILE_LABEL"
 echo "System RAM: ${TOTAL_MEM_GB}GB"
 echo "RPC threads: $RPC_THREADS | Accounts cache: ${ACCOUNTS_CACHE_MB}MB | Index bins: $ACCOUNTS_INDEX_BINS"
 echo "Accounts shrink ratio: 0.80 | Disk-backed index: minimal"
-echo "Geyser: $ENABLE_GEYSER | ALT index: $ENABLE_ALT_INDEX | TX history: $ENABLE_TX_HISTORY | no-xdp: $NO_XDP"
+echo "Geyser: $ENABLE_GEYSER | ALT index: $ENABLE_ALT_INDEX | TX history: $ENABLE_TX_HISTORY | no-xdp: $NO_XDP | accounts-cache: ${ACCOUNTS_CACHE_FLAG:-none}"
 if [[ "$ENABLE_GEYSER" == "1" ]]; then
   echo "Geyser config: $GEYSER_CONFIG_PATH"
 fi

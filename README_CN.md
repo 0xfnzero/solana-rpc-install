@@ -227,9 +227,14 @@ sudo bash system-optimize.sh
 sudo bash update-runtime.sh --restart
 ```
 
-> **v4.2 注意**：Agave/Jito v4.2+ 默认启用 XDP。本仓库 RPC 配置使用
-> `--allow-private-addr`，启动脚本会自动附加 `--no-xdp`。升级二进制后若未同步
-> 运行脚本，节点会立刻 crash-loop；请务必执行上面的 `update-runtime.sh`。
+> **v4.2 注意**：Agave/Jito v4.2+ 默认启用 XDP，且 `--allow-private-addr` 必须
+> 搭配 `--no-xdp`；同时把 `--accounts-db-cache-limit-mb` 改名为
+> `--accounts-db-write-cache-limit`，并移除了 `--accounts-db-access-storages-method`。
+> 启动脚本会探测已安装二进制并自动使用正确参数，但前提是运行脚本已同步 —— 否则
+> 节点会 crash-loop。升级后请务必执行上面的 `update-runtime.sh`。
+>
+> **v4.3（即将到来）**：`--limit-ledger-size` 将被 `--limit-blockstore-size` 取代。
+> 启动脚本在 v4.2 下仍使用当前参数，待 v4.3 落地后再切换。
 
 如果仍是 `v4.1.x-jito` 或更早版本，先编译已验证版本。最后一次重启会短暂中断
 RPC 服务：
