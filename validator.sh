@@ -130,9 +130,19 @@ fi
 # Probe the installed binary once so renamed/removed flags are applied
 # conditionally without breaking older releases (v4.1.x and earlier).
 VALIDATOR_HELP=$("$VALIDATOR_CMD" --help 2>&1 || true)
+VALIDATOR_VERSION=$("$VALIDATOR_CMD" --version 2>&1 || true)
 has_flag() {
   grep -q -- "$1" <<<"$VALIDATOR_HELP"
 }
+
+# Parse "major.minor" out of e.g. "agave-validator 4.2.1 (src:...)" so the
+# launcher can fall back to a version check when --help hides a flag.
+VALIDATOR_MAJOR=0
+VALIDATOR_MINOR=0
+if [[ "$VALIDATOR_VERSION" =~ (^|[^0-9])([0-9]+)\.([0-9]+) ]]; then
+  VALIDATOR_MAJOR=${BASH_REMATCH[2]}
+  VALIDATOR_MINOR=${BASH_REMATCH[3]}
+fi
 
 ARGS=(
   --ledger /root/sol/ledger
@@ -181,9 +191,13 @@ ARGS=(
 
 # Agave v4.2+ enables XDP by default. Gossip egress with --allow-private-addr
 # requires --no-xdp; without it the validator exits immediately on startup.
-# Probe so older binaries that lack the flag (e.g. v4.1.x) still work.
+# Probe so older binaries that lack the flag (e.g. v4.1.x) still work, and fall
+# back to a version check in case --help does not advertise the flag.
 NO_XDP=0
 if has_flag --no-xdp; then
+  ARGS+=(--no-xdp)
+  NO_XDP=1
+elif (( VALIDATOR_MAJOR > 4 || (VALIDATOR_MAJOR == 4 && VALIDATOR_MINOR >= 2) )); then
   ARGS+=(--no-xdp)
   NO_XDP=1
 fi
@@ -231,7 +245,7 @@ echo "Geyser: $ENABLE_GEYSER | ALT index: $ENABLE_ALT_INDEX | TX history: $ENABL
 if [[ "$ENABLE_GEYSER" == "1" ]]; then
   echo "Geyser config: $GEYSER_CONFIG_PATH"
 fi
-echo "Validator: $VALIDATOR_CMD"
+echo "Validator: $VALIDATOR_CMD (${VALIDATOR_VERSION})"
 echo "=================================================================="
 
 exec "$VALIDATOR_CMD" "${ARGS[@]}"
