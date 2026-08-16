@@ -70,9 +70,12 @@ if [[ -z "$VALIDATOR_CMD" ]]; then
 fi
 
 validator_help=$("$VALIDATOR_CMD" --help 2>&1 || true)
+# Runtime scripts target Agave/Jito v4.2+ only. Fail fast on older binaries.
 required_validator_flags=(
+  --no-xdp
   --no-snapshots
   --accounts-index-limit
+  --accounts-db-write-cache-limit
   --accounts-index-scan-results-limit-mb
   --accounts-shrink-ratio
   --accounts-index-bins
@@ -80,23 +83,10 @@ required_validator_flags=(
 for flag in "${required_validator_flags[@]}"; do
   if ! grep -q -- "$flag" <<<"$validator_help"; then
     echo "[ERROR] Installed validator does not support $flag: $VALIDATOR_CMD" >&2
+    echo "        Rebuild with Jito Solana v4.2.1 or newer, then re-run this script." >&2
     exit 1
   fi
 done
-
-# Agave/Jito v4.2 renamed/removed several flags our launcher probes for at
-# runtime. Warn when the installed binary predates v4.2 so an operator knows a
-# rebuild is required before relying on the new behavior.
-missing_v42=()
-grep -q -- '--no-xdp' <<<"$validator_help" || missing_v42+=(--no-xdp)
-grep -q -- '--accounts-db-write-cache-limit' <<<"$validator_help" \
-  || missing_v42+=(--accounts-db-write-cache-limit)
-if ((${#missing_v42[@]} > 0)); then
-  echo "[WARN] Installed validator does not advertise: ${missing_v42[*]}"
-  echo "       These are Agave/Jito v4.2+ flags. The launcher falls back for"
-  echo "       pre-v4.2 binaries, but a v4.2+ node needs them to start."
-  echo "       If startup fails after upgrade, rebuild with v4.2.1 or newer."
-fi
 
 missing_packages=()
 command -v iostat >/dev/null 2>&1 || missing_packages+=(sysstat)
