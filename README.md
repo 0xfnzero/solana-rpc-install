@@ -52,7 +52,7 @@ It is built for operators who need a practical Solana mainnet RPC deployment gui
 | `1-prepare.sh` | Mount NVMe data disks, create Solana directories, and apply Linux system optimizations |
 | `2-install-jito-validator.sh` | Build and install Jito Solana / Agave validator from source |
 | `3-start.sh` | Reuse or download a snapshot, install systemd, and start the RPC node without deleting data by default |
-| `validator.sh` | Auto-select the right validator profile for 128GB, 192GB, 256GB, or 512GB+ RAM |
+| `validator.sh` | Auto-select a RAM label; RPC/index/Geyser knobs stay on the conservative 128GB set |
 | `yellowstone-config.json` | Base Yellowstone gRPC Geyser configuration |
 | `performance-monitor.sh`, `get_health.sh`, `catchup.sh` | Monitor node health, memory, performance, and sync progress |
 | `update-runtime.sh` | Apply runtime and monitoring fixes without deleting node data |
@@ -70,10 +70,9 @@ It is built for operators who need a practical Solana mainnet RPC deployment gui
   - **4+ disks**: System + 3 data disks (accounts/ledger/snapshot separated)
 - **OS**: Ubuntu 22.04/24.04
 
-> **128GB/192GB scope:** These are constrained RPC profiles using a disk-backed
-> accounts index and indexing only the Address Lookup Table program. They are not
-> suitable for enabling every account index; Agave recommends substantially more
-> memory for that workload.
+> **RPC scope:** All RAM sizes use a disk-backed accounts index and index only
+> the Address Lookup Table program. They are not suitable for enabling every
+> account index; Agave recommends substantially more memory for that workload.
 - **Network**: High-bandwidth connection (1 Gbps+)
 
 ## 🚀 Quick Start
@@ -284,7 +283,7 @@ The defaults prioritize 128GB/192GB stability, upstream compatibility, and diagn
 ### ⚡ Yellowstone gRPC Configuration
 
 - ✅ **Compression Available**: Clients can negotiate gzip or zstd when bandwidth savings justify CPU cost
-- 📦 **Profile Buffers**: 50K channel/128 unary on 128GB; 100K/256 on 192GB
+- 📦 **Geyser buffers**: 50K channel / 128 unary on every host
 - 🎯 **Upstream Defaults**: System-managed Tokio and default HTTP/2 settings
 - 🛡️ **Resource Protection**: Bounded filter/request counts; authentication remains optional
 
@@ -302,11 +301,10 @@ fully compatible.
   - ⚡ Native CPU instructions and Jito's release-with-LTO build profile
   - ✅ Complete validator binary with full MEV support
   - 🎯 Built from a verified Jito release tag and recorded source commit
-- 🧠 **Intelligent Configuration Selection**: Auto-detects system RAM and selects optimal validator configuration
-  - TIER 1 (128GB): Conservative settings for 128-159GB systems
-  - TIER 2 (192GB): Balanced configuration for 192-223GB systems
-  - TIER 3 (256GB): High-performance for 256-383GB systems
-  - TIER 4 (512GB+): Maximum capacity for enterprise deployments
+- 🧠 **RAM labels only**: Detects system RAM for logging, but keeps the same
+  conservative RPC threads, accounts-index bins, and Geyser concurrency on
+  128GB through 512GB+ hosts. Scaling those knobs with RAM made account reads
+  stall on larger machines.
 - 🔄 **Automatic Disk Management**: Smart disk detection and mounting
 - 🛡️ **Production Ready**: Systemd service with a 90% last-resort host memory safeguard and OOM diagnostics
 - 🌐 **Network Resilience**: Enhanced version verification with graceful degradation
@@ -368,7 +366,7 @@ enabled automatically.
 ├─────────────────────────────────────────────────────────┤
 │  Yellowstone gRPC (Open-Source Tested Config)           │
 │  ├─ Compression: gzip+zstd enabled (fast processing)    │
-│  ├─ Buffers: 50K/128 (128GB), 100K/256 (192GB)         │
+│  ├─ Buffers: 50K/128 on all RAM sizes                   │
 │  ├─ Defaults: System-managed, no over-optimization      │
 │  └─ Protection: Filter and request limits               │
 ├─────────────────────────────────────────────────────────┤
@@ -387,8 +385,8 @@ enabled automatically.
    - gzip and zstd can reduce network bandwidth.
    - Compression consumes CPU, so clients should benchmark it for their traffic.
 
-2. **Queues are bounded per profile**
-   - 128GB nodes use a 50K per-connection channel; 192GB nodes use 100K.
+2. **Queues stay bounded**
+   - Every host uses a 50K per-connection channel and 128 unary limit.
    - A slow consumer may lag or reconnect instead of consuming unbounded node memory.
 
 3. **Leave unrelated runtime controls at upstream defaults**

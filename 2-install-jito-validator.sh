@@ -150,7 +150,7 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_STEP8="生成 Validator Keypair..."
   M_STEP9="配置防火墙..."
   M_STEP10="复制 validator 配置文件..."
-  M_TIER="检测到 %sGB RAM - 将使用 TIER %s 配置"
+  M_TIER="检测到 %sGB RAM - 使用 %s 标签，RPC 参数与 128GB 保守配置相同"
   M_STEP11="配置 systemd 服务..."
   M_SVC_UPDATED="systemd 服务配置已更新"
   M_STEP12="下载 Yellowstone gRPC geyser..."
@@ -206,7 +206,7 @@ else
   M_STEP8="Generate Validator Keypair..."
   M_STEP9="Configure firewall..."
   M_STEP10="Copy validator configs..."
-  M_TIER="%sGB RAM detected - using TIER %s config"
+  M_TIER="%sGB RAM detected - using %s label with the same conservative 128GB RPC knobs"
   M_STEP11="Configure systemd service..."
   M_SVC_UPDATED="systemd service updated"
   M_STEP12="Download Yellowstone gRPC geyser..."
@@ -441,13 +441,13 @@ chmod +x "$BIN"/validator*.sh "$BIN/select-validator.sh"
 
 TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
 if [[ $TOTAL_MEM_GB -lt 160 ]]; then
-  printf "   ✓ $M_TIER\n" "$TOTAL_MEM_GB" "1 (128GB)"
+  printf "   ✓ $M_TIER\n" "$TOTAL_MEM_GB" "128g"
 elif [[ $TOTAL_MEM_GB -lt 224 ]]; then
-  printf "   ✓ $M_TIER\n" "$TOTAL_MEM_GB" "2 (192GB)"
+  printf "   ✓ $M_TIER\n" "$TOTAL_MEM_GB" "192g"
 elif [[ $TOTAL_MEM_GB -lt 384 ]]; then
-  printf "   ✓ $M_TIER\n" "$TOTAL_MEM_GB" "3 (256GB)"
+  printf "   ✓ $M_TIER\n" "$TOTAL_MEM_GB" "256g"
 else
-  printf "   ✓ $M_TIER\n" "$TOTAL_MEM_GB" "4 (512GB+)"
+  printf "   ✓ $M_TIER\n" "$TOTAL_MEM_GB" "512g"
 fi
 
 echo ""
