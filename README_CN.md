@@ -70,7 +70,9 @@
   - **4+块盘**: 系统盘 + 3块数据盘 (accounts/ledger/snapshot 完全隔离)
 - **系统**: Ubuntu 22.04/24.04
 
-> **128GB/192GB 适用范围：** 这两档是使用磁盘后备 accounts index 的受限 RPC 配置，仅为 Address Lookup Table 程序建立索引，不适合开启全部账户索引；全量账户索引需要明显更大的内存。
+> **RPC 适用范围：** 所有档位都使用有上限的内存 accounts index（128GB 为 25GB，
+> 随内存升高，512GB+ 为 unlimited），且仅为 Address Lookup Table 程序建立索引，
+> 不适合开启全部账户索引。
 - **网络**: 高带宽连接 (1 Gbps+)
 
 ## 🚀 快速开始
@@ -228,9 +230,11 @@ sudo bash update-runtime.sh --restart
 ```
 
 > **v4.2 注意**：本仓库运行脚本仅支持 Agave/Jito **v4.2+**。v4.2 默认启用 XDP，
-> 且 `--allow-private-addr` 必须搭配 `--no-xdp`；账户缓存参数改为
-> `--accounts-db-write-cache-limit`。升级二进制后若未同步运行脚本，节点会
-> crash-loop —— 请务必执行上面的 `update-runtime.sh`。不再兼容 v4.1.x 启动参数。
+> 且 `--allow-private-addr` 必须搭配 `--no-xdp`。不再使用已弃用的
+> `--accounts-index-limit minimal`：128GB 用 `25GB`，192GB 用 `50GB`，256GB 用
+> `100GB`，512GB+ 用 `unlimited`，避免追平后 `getAccountInfo` 卡住。升级二进制后
+> 若未同步运行脚本，节点会 crash-loop —— 请务必执行上面的 `update-runtime.sh`。
+> 不再兼容 v4.1.x 启动参数。
 
 如果仍是 `v4.1.x-jito` 或更早版本，先编译 v4.2.1。最后一次重启会短暂中断 RPC
 服务：
