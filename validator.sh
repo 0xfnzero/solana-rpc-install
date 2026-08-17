@@ -1,9 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# Shared Solana RPC launcher. RAM profiles are labels only; RPC threads,
-# accounts-index bins, and Geyser concurrency stay on the 128GB-stable set.
-# Scaling those knobs with RAM made getAccountInfo stall on 256GB/512GB hosts.
+# Shared Solana RPC launcher. The profile only changes bounded concurrency and
+# accounts-index sharding; all safety-sensitive flags live in one place.
 # Targets Agave/Jito v4.2+ only (default install: v4.2.1).
 
 TOTAL_MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
@@ -21,26 +20,26 @@ if [[ "$PROFILE" == "auto" ]]; then
   fi
 fi
 
-# Keep the proven 128GB RPC/index/Geyser knobs on every host. Higher RAM does
-# not need more bins or unary concurrency; those settings increase lock and
-# disk contention on account reads.
-RPC_THREADS=8
-ACCOUNTS_INDEX_BINS=2048
-GEYSER_CHANNEL_CAPACITY="50_000"
-GEYSER_UNARY_LIMIT=128
-
 case "$PROFILE" in
   128g)
-    PROFILE_LABEL="128GB conservative"
+    RPC_THREADS=8
+    ACCOUNTS_INDEX_BINS=2048
+    PROFILE_LABEL="128GB stability"
     ;;
   192g)
-    PROFILE_LABEL="192GB conservative"
+    RPC_THREADS=10
+    ACCOUNTS_INDEX_BINS=4096
+    PROFILE_LABEL="192GB balanced"
     ;;
   256g)
-    PROFILE_LABEL="256GB conservative"
+    RPC_THREADS=16
+    ACCOUNTS_INDEX_BINS=8192
+    PROFILE_LABEL="256GB performance"
     ;;
   512g)
-    PROFILE_LABEL="512GB conservative"
+    RPC_THREADS=20
+    ACCOUNTS_INDEX_BINS=16384
+    PROFILE_LABEL="512GB performance"
     ;;
   *)
     echo "[ERROR] Unknown profile: $PROFILE (expected 128g, 192g, 256g, or 512g)" >&2
@@ -80,6 +79,21 @@ if [[ "$ENABLE_GEYSER" == "1" ]]; then
       echo "[ERROR] Yellowstone config was not found: $GEYSER_CONFIG_SOURCE" >&2
       exit 1
     fi
+
+    case "$PROFILE" in
+      128g)
+        GEYSER_CHANNEL_CAPACITY="50_000"
+        GEYSER_UNARY_LIMIT=128
+        ;;
+      192g)
+        GEYSER_CHANNEL_CAPACITY="100_000"
+        GEYSER_UNARY_LIMIT=256
+        ;;
+      *)
+        GEYSER_CHANNEL_CAPACITY="200_000"
+        GEYSER_UNARY_LIMIT=1000
+        ;;
+    esac
 
     if ! command -v jq >/dev/null 2>&1; then
       echo "[ERROR] jq is required to generate the profile-specific Yellowstone config" >&2
