@@ -52,7 +52,7 @@
 | `1-prepare.sh` | 挂载 NVMe 数据盘、创建 Solana 目录并应用 Linux 系统优化 |
 | `2-install-jito-validator.sh` | 从源码构建并安装 Jito Solana / Agave validator |
 | `3-start.sh` | 复用或下载快照、安装 systemd 服务并启动 RPC 节点；默认不删除数据 |
-| `validator.sh` | 根据 128GB、192GB、256GB、512GB+ 内存自动选择 validator 配置 |
+| `validator.sh` | 按内存打标签；RPC/索引/Geyser 参数统一使用 128GB 保守配置 |
 | `yellowstone-config.json` | Yellowstone gRPC Geyser 基础配置 |
 | `performance-monitor.sh`, `get_health.sh`, `catchup.sh` | 查看节点健康状态、内存、性能和同步进度 |
 | `update-runtime.sh` | 不删除节点数据，更新运行参数和监控脚本 |
@@ -70,7 +70,7 @@
   - **4+块盘**: 系统盘 + 3块数据盘 (accounts/ledger/snapshot 完全隔离)
 - **系统**: Ubuntu 22.04/24.04
 
-> **128GB/192GB 适用范围：** 这两档是使用磁盘后备 accounts index 的受限 RPC 配置，仅为 Address Lookup Table 程序建立索引，不适合开启全部账户索引；全量账户索引需要明显更大的内存。
+> **RPC 适用范围：** 所有内存规格都使用磁盘后备 accounts index，且仅为 Address Lookup Table 程序建立索引，不适合开启全部账户索引；全量账户索引需要明显更大的内存。
 - **网络**: 高带宽连接 (1 Gbps+)
 
 ## 🚀 快速开始
@@ -270,7 +270,7 @@ sudo bash update-runtime.sh --restart
 ### ⚡ Yellowstone gRPC 配置
 
 - ✅ **可选压缩**: 客户端可协商 gzip/zstd，以 CPU 换取带宽
-- 📦 **分档队列**: 128GB 使用 50K channel/128 unary；192GB 使用 100K/256
+- 📦 **Geyser 队列**: 所有主机使用 50K channel / 128 unary
 - 🎯 **上游默认**: Tokio 和 HTTP/2 参数保持默认
 - 🛡️ **资源保护**: 限制过滤器和请求数量；鉴权仍为可选项
 
@@ -286,11 +286,9 @@ sudo bash update-runtime.sh --restart
   - ⚡ 使用同机原生 CPU 指令和 Jito release-with-LTO profile
   - ✅ 完整的 validator 二进制文件和完整 MEV 支持
   - 🎯 验证 Jito release tag 并记录源码 commit
-- 🧠 **智能配置选择**: 自动检测系统 RAM 并选择最优 validator 配置
-  - TIER 1 (128GB): 保守配置，适用于 128-159GB 系统
-  - TIER 2 (192GB): 平衡配置，适用于 192-223GB 系统
-  - TIER 3 (256GB): 高性能配置，适用于 256-383GB 系统
-  - TIER 4 (512GB+): 最大容量配置，适用于企业级部署
+- 🧠 **仅作内存标签**: 自动检测系统 RAM 用于日志，但 128GB 到 512GB+ 都使用同一套
+  保守的 RPC 线程、accounts-index bins 和 Geyser 并发。按内存放大这些参数会让
+  大内存机器上的账户读取卡住。
 - 🔄 **自动磁盘管理**: 智能磁盘检测和挂载
 - 🛡️ **生产就绪**: Systemd 服务，90% 主机内存最后保护和 OOM 诊断
 - 🌐 **网络容错**: 增强版本验证，优雅处理网络问题
@@ -348,7 +346,7 @@ IP 白名单配置简单，但客户端公网 IP 变化后必须同步修改。T
 ├─────────────────────────────────────────────────────────┤
 │  Yellowstone gRPC (开源测试配置)                         │
 │  ├─ 压缩: 客户端可协商 gzip+zstd                         │
-│  ├─ 队列: 128GB 50K/128, 192GB 100K/256                │
+│  ├─ 队列: 所有内存规格 50K/128                           │
 │  ├─ 默认值: 系统管理, 无过度优化                         │
 │  └─ 保护: 过滤器和请求限制                               │
 ├─────────────────────────────────────────────────────────┤
@@ -367,8 +365,8 @@ IP 白名单配置简单，但客户端公网 IP 变化后必须同步修改。T
    - gzip/zstd 可以减少网络带宽，但会消耗 CPU。
    - 应根据实际客户端流量测试，而不是默认认为一定降低延迟。
 
-2. **队列按内存分档并设置上限**
-   - 128GB 节点每连接使用 50K channel，192GB 使用 100K。
+2. **队列设置上限，不再按内存放大**
+   - 所有主机每连接使用 50K channel 和 128 unary。
    - 慢客户端可能落后或重连，避免无限消耗节点内存。
 
 3. **无关运行参数保持上游默认**
