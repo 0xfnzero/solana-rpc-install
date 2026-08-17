@@ -70,10 +70,9 @@ It is built for operators who need a practical Solana mainnet RPC deployment gui
   - **4+ disks**: System + 3 data disks (accounts/ledger/snapshot separated)
 - **OS**: Ubuntu 22.04/24.04
 
-> **128GB/192GB scope:** These are constrained RPC profiles using a disk-backed
-> accounts index and indexing only the Address Lookup Table program. They are not
-> suitable for enabling every account index; Agave recommends substantially more
-> memory for that workload.
+> **RPC scope:** All profiles use a bounded in-memory accounts index (25GB on
+> 128GB hosts, scaling up to unlimited on 512GB+) and index only the Address
+> Lookup Table program. They are not suitable for enabling every account index.
 - **Network**: High-bandwidth connection (1 Gbps+)
 
 ## 🚀 Quick Start
@@ -240,8 +239,10 @@ sudo bash update-runtime.sh --restart
 ```
 
 > **v4.2 note**: Runtime scripts support Agave/Jito **v4.2+ only**. v4.2 enables
-> XDP by default and requires `--no-xdp` with `--allow-private-addr`; the
-> accounts cache flag is `--accounts-db-write-cache-limit`. After upgrading the
+> XDP by default and requires `--no-xdp` with `--allow-private-addr`. The
+> deprecated `--accounts-index-limit minimal` path is not used: 128GB uses
+> `25GB`, 192GB `50GB`, 256GB `100GB`, and 512GB+ `unlimited`, so
+> `getAccountInfo` can be served from RAM after catchup. After upgrading the
 > binary without syncing runtime scripts, the node crash-loops — always run
 > `update-runtime.sh` above. v4.1.x launch flags are no longer supported.
 

@@ -75,6 +75,7 @@ required_validator_flags=(
   --no-xdp
   --no-snapshots
   --accounts-index-limit
+  --accounts-db-scan-filter-for-shrinking
   --accounts-db-write-cache-limit
   --accounts-index-scan-results-limit-mb
   --accounts-shrink-ratio

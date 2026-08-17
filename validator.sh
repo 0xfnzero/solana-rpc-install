@@ -24,21 +24,25 @@ case "$PROFILE" in
   128g)
     RPC_THREADS=8
     ACCOUNTS_INDEX_BINS=2048
+    ACCOUNTS_INDEX_LIMIT=25GB
     PROFILE_LABEL="128GB stability"
     ;;
   192g)
     RPC_THREADS=10
     ACCOUNTS_INDEX_BINS=4096
+    ACCOUNTS_INDEX_LIMIT=50GB
     PROFILE_LABEL="192GB balanced"
     ;;
   256g)
     RPC_THREADS=16
     ACCOUNTS_INDEX_BINS=8192
+    ACCOUNTS_INDEX_LIMIT=100GB
     PROFILE_LABEL="256GB performance"
     ;;
   512g)
     RPC_THREADS=20
     ACCOUNTS_INDEX_BINS=16384
+    ACCOUNTS_INDEX_LIMIT=unlimited
     PROFILE_LABEL="512GB performance"
     ;;
   *)
@@ -164,7 +168,8 @@ ARGS=(
   --use-snapshot-archives-at-startup when-newest
   --limit-ledger-size 50000000
   --wal-recovery-mode skip_any_corrupted_record
-  --accounts-index-limit minimal
+  --accounts-index-limit "$ACCOUNTS_INDEX_LIMIT"
+  --accounts-db-scan-filter-for-shrinking only-abnormal
   --accounts-db-write-cache-limit "${ACCOUNTS_CACHE_MB}MB"
   --accounts-index-scan-results-limit-mb 256
   --accounts-shrink-ratio 0.80
@@ -194,7 +199,7 @@ echo "=================================================================="
 echo "Solana RPC profile: $PROFILE_LABEL"
 echo "System RAM: ${TOTAL_MEM_GB}GB"
 echo "RPC threads: $RPC_THREADS | Accounts cache: ${ACCOUNTS_CACHE_MB}MB | Index bins: $ACCOUNTS_INDEX_BINS"
-echo "Accounts shrink ratio: 0.80 | Disk-backed index: minimal"
+echo "Accounts shrink ratio: 0.80 | Accounts index limit: $ACCOUNTS_INDEX_LIMIT"
 echo "Geyser: $ENABLE_GEYSER | ALT index: $ENABLE_ALT_INDEX | TX history: $ENABLE_TX_HISTORY"
 if [[ "$ENABLE_GEYSER" == "1" ]]; then
   echo "Geyser config: $GEYSER_CONFIG_PATH"
