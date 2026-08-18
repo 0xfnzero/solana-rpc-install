@@ -149,6 +149,7 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_VERSION="版本: %s"
   M_STEP8="生成 Validator Keypair..."
   M_STEP9="配置防火墙..."
+  M_FW_PUBLIC_CLOSED="8899/8900/10900 不对公网开放，仅本机可访问"
   M_STEP10="复制 validator 配置文件..."
   M_TIER="检测到 %sGB RAM - 将使用 TIER %s 配置"
   M_STEP11="配置 systemd 服务..."
@@ -205,6 +206,7 @@ else
   M_VERSION="Version: %s"
   M_STEP8="Generate Validator Keypair..."
   M_STEP9="Configure firewall..."
+  M_FW_PUBLIC_CLOSED="8899/8900/10900 are not open to the public; localhost only"
   M_STEP10="Copy validator configs..."
   M_TIER="%sGB RAM detected - using TIER %s config"
   M_STEP11="Configure systemd service..."
@@ -424,9 +426,14 @@ ufw --force enable
 ufw allow 22
 ufw allow "$VALIDATOR_UFW_PORT_RANGE"/tcp
 ufw allow "$VALIDATOR_UFW_PORT_RANGE"/udp
-ufw allow 8899   # HTTP
-ufw allow 8900   # WS
-ufw allow 10900  # GRPC
+# RPC / WebSocket / Yellowstone gRPC stay localhost-only. Public scanners
+# hitting 8899/8900/10900 overload the node; allow a specific client IP later
+# if remote access is required.
+for port in 8899 8900 10900; do
+  yes | ufw delete allow "$port" >/dev/null 2>&1 || true
+  yes | ufw delete allow "$port/tcp" >/dev/null 2>&1 || true
+done
+echo "   ✓ $M_FW_PUBLIC_CLOSED"
 ufw status || true
 
 echo ""

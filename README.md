@@ -178,6 +178,8 @@ After completing your RPC node installation, you can enhance performance with Ji
 - **Repository**: [jito-shredstream-install](https://github.com/0xfnzero/jito-shredstream-install)
 
 ShredStream provides low-latency block streaming for Jito MEV infrastructure.
+This RPC installer does not open ShredStream proxy ports. Keep those ports
+firewalled in the ShredStream install unless a specific client IP needs access.
 
 ## 📊 Monitoring & Management
 
@@ -318,26 +320,24 @@ fully compatible.
 
 | Port | Protocol | Purpose |
 |------|----------|---------|
-| **8899** | HTTP | RPC endpoint |
-| **8900** | WebSocket | Real-time subscriptions |
-| **10900** | gRPC | High-performance data streaming; open by default for compatibility |
-| **8000-8030** | TCP/UDP | Validator communication (dynamic) |
+| **8899** | HTTP | RPC endpoint (localhost only by default) |
+| **8900** | WebSocket | Real-time subscriptions (localhost only by default) |
+| **10900** | gRPC | Yellowstone gRPC (localhost only by default) |
+| **8000-8030** | TCP/UDP | Validator gossip / shreds (must stay public) |
 
-The installer does not require a gRPC token, so existing clients continue to
-work without additional metadata. Operators with a fixed client IP can
-optionally restrict port 10900:
+The installer enables ufw and opens SSH plus the validator dynamic port range.
+It does **not** open 8899, 8900, or 10900 to the internet. Local tools such as
+`curl http://127.0.0.1:8899` keep working. Re-running `update-runtime.sh`
+removes any previous public allows for those three ports.
+
+To expose RPC, WebSocket, or gRPC to a fixed client IP:
 
 ```bash
-ufw delete allow 10900
+ufw allow from CLIENT_PUBLIC_IP to any port 8899 proto tcp
+ufw allow from CLIENT_PUBLIC_IP to any port 8900 proto tcp
 ufw allow from CLIENT_PUBLIC_IP to any port 10900 proto tcp
-ufw deny 10900/tcp
 ufw status numbered
 ```
-
-An IP allowlist is simple for fixed servers but must be updated whenever the
-client's public IP changes. Token authentication is more flexible for roaming
-clients, but every client must be configured to send the token, so it is not
-enabled automatically.
 
 ## 📈 Performance Metrics
 

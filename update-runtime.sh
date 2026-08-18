@@ -133,6 +133,14 @@ install -m 0644 "$logrotate_tmp" /etc/logrotate.d/solana-rpc
 
 systemctl daemon-reload
 
+if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -qi '^Status: active'; then
+  for port in 8899 8900 10900; do
+    yes | ufw delete allow "$port" >/dev/null 2>&1 || true
+    yes | ufw delete allow "$port/tcp" >/dev/null 2>&1 || true
+  done
+  echo "Public ufw allows for 8899/8900/10900 were removed; RPC, WebSocket, and gRPC stay localhost-only."
+fi
+
 echo "Runtime configuration updated without deleting ledger, accounts, or snapshots."
 echo "Previous configuration backup: $backup_dir"
 
