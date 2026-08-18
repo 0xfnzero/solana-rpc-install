@@ -312,16 +312,17 @@ sudo bash update-runtime.sh --restart
 | **10900** | gRPC | Yellowstone gRPC（默认仅本机） |
 | **8000-8030** | TCP/UDP | 验证者 gossip / shred（必须对公网开放） |
 
-安装器会启用 ufw，并放行 SSH 以及 validator 动态端口。**不会**把 8899、8900、
-10900 对公网开放。本机 `curl http://127.0.0.1:8899` 仍可用。再次执行
-`update-runtime.sh` 会删掉这三端口上已有的公网 allow 规则。
+安装器会启用 ufw，放行 SSH 和 validator 动态端口，然后**关闭** 8899、8900、
+10900：删除这些端口上已有的 allow（包括以前开过的公网规则），并加上
+`ufw deny`。本机 `curl http://127.0.0.1:8899` 仍可用。已开放过的节点再跑
+`update-runtime.sh` 也会被关掉。
 
-如需给固定客户端 IP 开放 RPC、WebSocket 或 gRPC：
+如需给固定客户端 IP 开放，必须把 allow **插到 deny 前面**：
 
 ```bash
-ufw allow from 客户端公网IP to any port 8899 proto tcp
-ufw allow from 客户端公网IP to any port 8900 proto tcp
-ufw allow from 客户端公网IP to any port 10900 proto tcp
+ufw insert 1 allow from 客户端公网IP to any port 8899 proto tcp
+ufw insert 1 allow from 客户端公网IP to any port 8900 proto tcp
+ufw insert 1 allow from 客户端公网IP to any port 10900 proto tcp
 ufw status numbered
 ```
 

@@ -7,6 +7,9 @@ SERVICE_NAME=${SERVICE_NAME:-sol}
 RESTART=false
 BACKUP_ROOT=${BACKUP_ROOT:-/root/sol/runtime-backups}
 
+# shellcheck source=ufw-close-public-api.sh
+source "$SCRIPT_DIR/ufw-close-public-api.sh"
+
 if [[ ${1:-} == "--restart" ]]; then
   RESTART=true
 elif [[ $# -gt 0 ]]; then
@@ -34,6 +37,7 @@ required_files=(
   performance-monitor.sh
   logrotate-solana-rpc
   sol.service
+  ufw-close-public-api.sh
 )
 
 for file in "${required_files[@]}"; do
@@ -133,12 +137,9 @@ install -m 0644 "$logrotate_tmp" /etc/logrotate.d/solana-rpc
 
 systemctl daemon-reload
 
-if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -qi '^Status: active'; then
-  for port in 8899 8900 10900; do
-    yes | ufw delete allow "$port" >/dev/null 2>&1 || true
-    yes | ufw delete allow "$port/tcp" >/dev/null 2>&1 || true
-  done
-  echo "Public ufw allows for 8899/8900/10900 were removed; RPC, WebSocket, and gRPC stay localhost-only."
+if command -v ufw >/dev/null 2>&1; then
+  close_ufw_public_api_ports
+  echo "Closed public ufw access to 8899/8900/10900 (RPC, WebSocket, gRPC)."
 fi
 
 echo "Runtime configuration updated without deleting ledger, accounts, or snapshots."
