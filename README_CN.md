@@ -170,6 +170,8 @@ bash /root/performance-monitor.sh snapshot
 - **项目仓库**: [jito-shredstream-install](https://github.com/0xfnzero/jito-shredstream-install)
 
 ShredStream 为 Jito MEV 基础设施提供低延迟的区块流传输。
+本 RPC 安装器不会开放 ShredStream 代理端口；请在 ShredStream 安装里自行限制
+防火墙，除非需要给指定客户端 IP 放行。
 
 ## 📊 监控与管理
 
@@ -305,22 +307,23 @@ sudo bash update-runtime.sh --restart
 
 | 端口 | 协议 | 用途 |
 |------|------|------|
-| **8899** | HTTP | RPC 端点 |
-| **8900** | WebSocket | 实时订阅 |
-| **10900** | gRPC | 高性能数据流；为兼容现有客户端默认开放 |
-| **8000-8030** | TCP/UDP | 验证者通信 (动态) |
+| **8899** | HTTP | RPC 端点（默认仅本机） |
+| **8900** | WebSocket | 实时订阅（默认仅本机） |
+| **10900** | gRPC | Yellowstone gRPC（默认仅本机） |
+| **8000-8030** | TCP/UDP | 验证者 gossip / shred（必须对公网开放） |
 
-安装器不会强制 gRPC token，现有客户端无需增加 metadata。固定出口 IP 的用户可选：
+安装器会启用 ufw，并放行 SSH 以及 validator 动态端口。**不会**把 8899、8900、
+10900 对公网开放。本机 `curl http://127.0.0.1:8899` 仍可用。再次执行
+`update-runtime.sh` 会删掉这三端口上已有的公网 allow 规则。
+
+如需给固定客户端 IP 开放 RPC、WebSocket 或 gRPC：
 
 ```bash
-ufw delete allow 10900
+ufw allow from 客户端公网IP to any port 8899 proto tcp
+ufw allow from 客户端公网IP to any port 8900 proto tcp
 ufw allow from 客户端公网IP to any port 10900 proto tcp
-ufw deny 10900/tcp
 ufw status numbered
 ```
-
-IP 白名单配置简单，但客户端公网 IP 变化后必须同步修改。Token 更适合 IP 经常变化的
-客户端，但每个客户端都必须携带 token，因此本项目不默认启用。
 
 ## 📈 性能指标
 
