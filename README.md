@@ -325,17 +325,19 @@ fully compatible.
 | **10900** | gRPC | Yellowstone gRPC (localhost only by default) |
 | **8000-8030** | TCP/UDP | Validator gossip / shreds (must stay public) |
 
-The installer enables ufw and opens SSH plus the validator dynamic port range.
-It does **not** open 8899, 8900, or 10900 to the internet. Local tools such as
-`curl http://127.0.0.1:8899` keep working. Re-running `update-runtime.sh`
-removes any previous public allows for those three ports.
+The installer enables ufw, opens SSH plus the validator dynamic port range, then
+**closes** 8899, 8900, and 10900: it deletes any existing allows (including
+previous public opens) and adds `ufw deny` for those TCP ports. Localhost
+`curl http://127.0.0.1:8899` still works. Re-running `update-runtime.sh`
+applies the same close on nodes that already opened these ports.
 
-To expose RPC, WebSocket, or gRPC to a fixed client IP:
+To expose RPC, WebSocket, or gRPC to a fixed client IP, insert the allow
+**before** the deny rule:
 
 ```bash
-ufw allow from CLIENT_PUBLIC_IP to any port 8899 proto tcp
-ufw allow from CLIENT_PUBLIC_IP to any port 8900 proto tcp
-ufw allow from CLIENT_PUBLIC_IP to any port 10900 proto tcp
+ufw insert 1 allow from CLIENT_PUBLIC_IP to any port 8899 proto tcp
+ufw insert 1 allow from CLIENT_PUBLIC_IP to any port 8900 proto tcp
+ufw insert 1 allow from CLIENT_PUBLIC_IP to any port 10900 proto tcp
 ufw status numbered
 ```
 

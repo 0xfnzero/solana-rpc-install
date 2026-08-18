@@ -16,6 +16,9 @@ LANG_CACHE_FILE="$SCRIPT_DIR/solana-rpc-lang"
 # shellcheck source=lang.sh
 source "$SCRIPT_DIR/lang.sh"
 
+# shellcheck source=ufw-close-public-api.sh
+source "$SCRIPT_DIR/ufw-close-public-api.sh"
+
 BASE=${BASE:-/root/sol}
 BIN="$BASE/bin"
 KEYPAIR="$BIN/validator-keypair.json"
@@ -149,7 +152,7 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_VERSION="版本: %s"
   M_STEP8="生成 Validator Keypair..."
   M_STEP9="配置防火墙..."
-  M_FW_PUBLIC_CLOSED="8899/8900/10900 不对公网开放，仅本机可访问"
+  M_FW_PUBLIC_CLOSED="已关闭 8899/8900/10900 公网访问，仅本机可连"
   M_STEP10="复制 validator 配置文件..."
   M_TIER="检测到 %sGB RAM - 将使用 TIER %s 配置"
   M_STEP11="配置 systemd 服务..."
@@ -206,7 +209,7 @@ else
   M_VERSION="Version: %s"
   M_STEP8="Generate Validator Keypair..."
   M_STEP9="Configure firewall..."
-  M_FW_PUBLIC_CLOSED="8899/8900/10900 are not open to the public; localhost only"
+  M_FW_PUBLIC_CLOSED="Closed public access to 8899/8900/10900; localhost only"
   M_STEP10="Copy validator configs..."
   M_TIER="%sGB RAM detected - using TIER %s config"
   M_STEP11="Configure systemd service..."
@@ -426,13 +429,8 @@ ufw --force enable
 ufw allow 22
 ufw allow "$VALIDATOR_UFW_PORT_RANGE"/tcp
 ufw allow "$VALIDATOR_UFW_PORT_RANGE"/udp
-# RPC / WebSocket / Yellowstone gRPC stay localhost-only. Public scanners
-# hitting 8899/8900/10900 overload the node; allow a specific client IP later
-# if remote access is required.
-for port in 8899 8900 10900; do
-  yes | ufw delete allow "$port" >/dev/null 2>&1 || true
-  yes | ufw delete allow "$port/tcp" >/dev/null 2>&1 || true
-done
+# Drop any existing public allows, then deny RPC / WebSocket / gRPC.
+close_ufw_public_api_ports
 echo "   ✓ $M_FW_PUBLIC_CLOSED"
 ufw status || true
 
